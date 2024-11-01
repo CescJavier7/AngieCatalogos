@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Angie Catálogos | Ventas por Catálogo en Ecuador</title>
+
+  <!-- 
+    - favicon
+  -->
+  <link rel="shortcut icon" href="./favicon.svg" type="image/svg+xml">
+
+  <!-- 
+    - custom css link
+  -->
+  <link rel="stylesheet" href="estiloproducts.css">
+
+  <!-- 
+    - google font link
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- 
+    - preload images
+  -->
+ 
+  <link rel="preload" as="image" href="img/fondo_yanbal.jpg">
+  <link rel="preload" as="image" href="img/fondo_calzado.webp">
+  <link rel="preload" as="image" href="img/fondo_ropa.jpg">
+
+</head>
+
+<body id="top">
+
+  <!-- 
+    - #HEADER
+  -->
+  <header class="header">
+
+
+    <div class="header-top" data-header>
+      <div class="container">
+
+        <button class="nav-open-btn" aria-label="open menu" data-nav-toggler>
+          <span class="line line-1"></span>
+          <span class="line line-2"></span>
+          <span class="line line-3"></span>
+        </button>
+
+        <a href="#" class="logo">
+          <img src="img/logoblack.png" width="179" height="70" alt="Glowing">
+        </a>
+
+        <div class="header-actions">
+
+
+        </div>
+
+        <nav class="navbar">
+          <ul class="navbar-list">
+
+            <li>
+              <a href="index.html" class="navbar-link has-after">Inicio</a>
+            </li>
+
+            <li>
+              <a href="#collection" class="navbar-link has-after">Colección</a>
+            </li>
+
+            <li>
+              <a href="#perfumes" class="navbar-link has-after">Perfumes</a>
+            </li>
+
+            <li>
+              <a href="#sunscreen" class="navbar-link has-after">Protectores Solares</a>
+            </li>
+
+          </ul>
+        </nav>
+
+      </div>
+    </div>
+
+  </header>
+
+  <!--#NAVBAR Versión Mobile-->
+
+  <div class="sidebar">
+    <div class="mobile-navbar" data-navbar>
+
+      <div class="wrapper">
+        <a href="#" class="logo">
+          <img src="img/logoblack.png" width="179" height="26" alt="Glowing">
+        </a>
+
+        <button class="nav-close-btn" aria-label="close menu" data-nav-toggler>
+          <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+        </button>
+      </div>
+
+      <ul class="navbar-list">
+
+        <li>
+          <a href="index.html" class="navbar-link" data-nav-link>Inicio</a>
+        </li>
+
+        <li>
+          <a href="#collection" class="navbar-link" data-nav-link>Colección </a>
+          </li>
+        <li>
+          <a href="#shop" class="navbar-link" data-nav-link>Productos</a>
+        </li>
+
+        <li>
+          <a href="#offer" class="navbar-link" data-nav-link>Ofertas</a>
+        </li>
+
+      </ul>
+
+    </div>
+
+    <div class="overlay" data-nav-toggler data-overlay></div>
+  </div>
+
+  <main>
+    <article>
+
+      <!-- 
+        - #HERO
+      -->
+
+      <section class="section hero" id="home" aria-label="hero" data-section>
+        <div class="container">
+
+          <ul class="has-scrollbar">
+
+            <li class="scrollbar-item">
+              <div class="hero-card has-bg-image" style="background-image: url('img/fondo_yanbal.jpg')">
+
+                <div class="card-content">
+
+                  <h1 class="h1 hero-title">
+                    Descubre lo mejor<br>
+                 en perfumes 
+                 <span class="highlight">Yanbal</span>
+                  </h1>
+
+                  <p class="hero-text">
+            Ingresar texto llamativo con respecto a los ingredientes usados para la realización de los perfumes                  </p>
+
+                  <p class="price">Desde los $20.00</p>
+
+                  <a href="https://wa.me/593980441321/?text=Me%20ayudar%C3%ADa%20con%20los%20perfumes%20de%20%2420,%20por%20favor" class="btn btn-primary" target="_blank">Contactar por WhatsApp</a>
+              </div>
+            </li>
+          </ul>
+
+        </div>
+      </section>
+
+      <!-- 
+        - #PRODUCTOS-PERFUMES
+      -->
+
+      <section class="section shop" id="perfumes" aria-label="shop" data-section>
+        <div class="container">
+
+          <div class="title-wrapper">
+            <h2 class="h2 section-title">PERFUMES EN STOCK</h2>
+
+            <a href="https://www.facebook.com/catalogosdemodaecuador" class="btn-link">
+              <span class="span">Descubre más</span>
+
+              <ion-icon name="arrow-forward" aria-hidden="true"></ion-icon>
+            </a>
+          </div>
+
+          <ul class="has-scrollbar">
+
+            <li class="scrollbar-item">
+              <div class="shop-card">
+
+                <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                  <img src="img/ohmblack.jpg" width="540" height="720" loading="lazy"
+                    alt="Facial cleanser" class="img-cover">
+
+                  <span class="badge" aria-label="20% off">-35%</span>
+
+                  <div class="card-actions">
+
+                    <button class="action-btn" aria-label="send to WhatsApp" 
+                    data-product-name="PERFUME OHM BLACK" 
+                    data-product-price="$28.00" 
+                    onclick="sendWhatsAppMessage(this)">
+                      <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                  </button>
+                  
+                      
+                  </div>
+                </div>
+
+                <div class="card-content">
+
+                  <div class="price">
+                    <del class="del">$44.00</del>
+
+                    <span class="span">$28.00</span>
+                  </div>
+
+                  <h3>
+                    <p class="card-title" style="cursor: pointer;">PERFUME OHM BLACK</p>
+
+                  </h3>
+
+                  <div class="card-rating">
+
+                    <div class="rating-wrapper" aria-label="5 start rating">
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="tue"></ion-icon>
+                    </div>
+
+                    <p class="rating-text">Cantidad: 2</p>
+
+                  </div>
+
+                </div>
+
+              </div>
+              
+            </li>
+
+              <li class="scrollbar-item">
+              <div class="shop-card">
+
+                <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                  <img src="img/osadiadama.webp" width="540" height="720" loading="lazy"
+                    alt="Bio-shroom Rejuvenating Serum" class="img-cover">
+
+                  <div class="card-actions">
+
+                    <button class="action-btn" aria-label="send to WhatsApp" 
+                    data-product-name="PERFUME OSADIA DAMA" 
+                    data-product-price="$29.00" 
+                    onclick="sendWhatsAppMessage(this)">
+                     <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                    </button>
+
+                  </div>
+                </div>
+
+                <div class="card-content">
+
+                  <div class="price">
+                    <span class="span">$29.00</span>
+                  </div>
+
+                  <h3>
+                    <p class="card-title" style="cursor: pointer;">PERFUME OSADIA DAMA</p>
+
+                  </h3>
+
+                  <div class="card-rating">
+
+                    <div class="rating-wrapper" aria-label="5 start rating">
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    </div>
+
+                    <p class="rating-text">Cantidad: 3</p>
+
+                  </div>
+
+                </div>
+
+              </div>
+            </li>
+
+            <li class="scrollbar-item">
+              <div class="shop-card">
+
+                <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                  <img src="img/ohmsoul.jpg" width="540" height="720" loading="lazy"
+                    alt="Bio-shroom Rejuvenating Serum" class="img-cover">
+
+                  <div class="card-actions">
+
+                    <button class="action-btn" aria-label="send to WhatsApp" 
+                    data-product-name="PERFUME OHM SOUL" 
+                    data-product-price="$29.00" 
+                    onclick="sendWhatsAppMessage(this)">
+                     <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                    </button>
+
+
+                  </div>
+                </div>
+
+                <div class="card-content">
+
+                  <div class="price">
+                    <span class="span">$29.00</span>
+                  </div>
+
+                  <h3>
+                    <p class="card-title" style="cursor: pointer;">PERFUME OHM SOUL</p>
+                  </h3>
+
+                  <div class="card-rating">
+
+                    <div class="rating-wrapper" aria-label="5 start rating">
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    </div>
+
+                    <p class="rating-text">Cantidad: 2</p>
+
+                  </div>
+
+                </div>
+
+              </div>
+            </li>
+
+            <li class="scrollbar-item">
+                <div class="shop-card">
+  
+                  <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                    <img src="img/gaia.jpg" width="540" height="720" loading="lazy"
+                      alt="Bio-shroom Rejuvenating Serum" class="img-cover">
+  
+                    <div class="card-actions">
+  
+                        <button class="action-btn" aria-label="send to WhatsApp" 
+                    data-product-name="PERFUME GAIA DAMA" 
+                    data-product-price="$25.00" 
+                    onclick="sendWhatsAppMessage(this)">
+                     <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                    </button>
+
+                    </div>
+                  </div>
+  
+                  <div class="card-content">
+  
+                    <div class="price">
+                      <span class="span">$25.00</span>
+                    </div>
+  
+                    <h3>
+                        <p class="card-title" style="cursor: pointer;">PERFUME GAIA DAMA</p>
+                    </h3>
+  
+                    <div class="card-rating">
+  
+                      <div class="rating-wrapper" aria-label="5 start rating">
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      </div>
+  
+                      <p class="rating-text">Cantidad: 2</p>
+  
+                    </div>
+  
+                  </div>
+  
+                </div>
+              </li>
+
+            <li class="scrollbar-item">
+              <div class="shop-card">
+
+                <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                  <img src="img/ohm.webp" width="540" height="720" loading="lazy"
+                    alt="Coffee Bean Caffeine Eye Cream" class="img-cover">
+
+                  <div class="card-actions">
+
+                    <button class="action-btn" aria-label="send to WhatsApp" 
+                    data-product-name="PERFUME OHM" 
+                    data-product-price="$27.00" 
+                    onclick="sendWhatsAppMessage(this)">
+                     <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                    </button>
+
+                  </div>
+                </div>
+
+                <div class="card-content">
+
+                  <div class="price">
+                    <span class="span">$27.00</span>
+                  </div>
+
+                  <h3>
+                    <p class="card-title" style="cursor: pointer;">PERFUME OHM</p>
+                  </h3>
+
+                  <div class="card-rating">
+
+                    <div class="rating-wrapper" aria-label="5 start rating">
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    </div>
+
+                    <p class="rating-text">Cantidad: 1</p>
+
+                  </div>
+
+                </div>
+
+              </div>
+            </li>
+
+            <li class="scrollbar-item">
+                <div class="shop-card">
+  
+                  <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                    <img src="img/ccoridorado.jpg" width="540" height="720" loading="lazy"
+                      alt="Coffee Bean Caffeine Eye Cream" class="img-cover">
+  
+                    <div class="card-actions">
+  
+                        <button class="action-btn" aria-label="send to WhatsApp" 
+                    data-product-name="PERFUME CCORI DORADO" 
+                    data-product-price="$27.00" 
+                    onclick="sendWhatsAppMessage(this)">
+                     <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                    </button>
+  
+                    </div>
+                  </div>
+  
+                  <div class="card-content">
+  
+                    <div class="price">
+                      <span class="span">$27.00</span>
+                    </div>
+  
+                    <h3>
+                        <p class="card-title" style="cursor: pointer;">PERFUME CCORI DORADO</p>
+                    </h3>
+  
+                    <div class="card-rating">
+  
+                      <div class="rating-wrapper" aria-label="5 start rating">
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      </div>
+  
+                      <p class="rating-text">Cantidad: 1</p>
+  
+                    </div>
+  
+                  </div>
+  
+                </div>
+              </li>
+
+            <li class="scrollbar-item">
+              <div class="shop-card">
+
+                <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                  <img src="img/jaque.webp" width="540" height="720" loading="lazy"
+                    alt="Facial cleanser" class="img-cover">
+
+                  <div class="card-actions">
+
+                    <button class="action-btn" aria-label="send to WhatsApp" 
+                    data-product-name="PERFUME JAQUE" 
+                    data-product-price="$29.99" 
+                    onclick="sendWhatsAppMessage(this)">
+                     <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                    </button>
+
+
+                  </div>
+                </div>
+
+                <div class="card-content">
+
+                  <div class="price">
+                    <span class="span">$29.99</span>
+                  </div>
+
+                  <h3>
+                    <p class="card-title" style="cursor: pointer;">PERFUME JAQUE</p>
+                  </h3>
+
+                  <div class="card-rating">
+
+                    <div class="rating-wrapper" aria-label="5 start rating">
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    </div>
+
+                    <p class="rating-text">Cantidad: 1</p>
+
+                  </div>
+
+                </div>
+
+              </div>
+            </li>
+
+            <li class="scrollbar-item">
+                <div class="shop-card">
+  
+                  <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                    <img src="img/dulcevanidad.jpg" width="540" height="720" loading="lazy"
+                      alt="Facial cleanser" class="img-cover">
+  
+                    <div class="card-actions">
+  
+                        <button class="action-btn" aria-label="send to WhatsApp" 
+                    data-product-name="PERFUME DULCE VANIDAD" 
+                    data-product-price="$27.99" 
+                    onclick="sendWhatsAppMessage(this)">
+                     <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                    </button>
+  
+                    </div>
+                  </div>
+  
+                  <div class="card-content">
+  
+                    <div class="price">
+                      <span class="span">$27.99</span>
+                    </div>
+  
+                    <h3>
+                        <p class="card-title" style="cursor: pointer;">PERFUME DULCE VANIDAD</p>
+                    </h3>
+  
+                    <div class="card-rating">
+  
+                      <div class="rating-wrapper" aria-label="5 start rating">
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      </div>
+  
+                      <p class="rating-text">Cantidad: 2</p>
+  
+                    </div>
+  
+                  </div>
+  
+                </div>
+              </li>
+
+            <li class="scrollbar-item">
+              <div class="shop-card">
+
+                <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                  <img src="img/osadia.jpg" width="540" height="720" loading="lazy"
+                    alt="Coffee Bean Caffeine Eye Cream" class="img-cover">
+
+                  <div class="card-actions">
+
+                    <button class="action-btn" aria-label="send to WhatsApp" 
+                    data-product-name="PERFUME OSADIA" 
+                    data-product-price="$29.00" 
+                    onclick="sendWhatsAppMessage(this)">
+                     <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                    </button>
+
+                  </div>
+                </div>
+
+                <div class="card-content">
+
+                  <div class="price">
+                    <del class="del">$39.00</del>
+
+                    <span class="span">$29.00</span>
+                  </div>
+
+                  <h3>
+                    <p class="card-title" style="cursor: pointer;">PERFUME OSADIA</p>
+                  </h3>
+
+                  <div class="card-rating">
+
+                    <div class="rating-wrapper" aria-label="5 start rating">
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    </div>
+
+                    <p class="rating-text">Cantidad: 3</p>
+
+                  </div>
+
+                </div>
+
+              </div>
+            </li>
+
+            <li class="scrollbar-item">
+                <div class="shop-card">
+  
+                  <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                    <img src="img/temptationdama.jpg" width="540" height="720" loading="lazy"
+                      alt="Facial cleanser" class="img-cover">
+  
+                    <div class="card-actions">
+  
+                        <button class="action-btn" aria-label="send to WhatsApp" 
+                        data-product-name="PERFUME TEMPTATION MYSTIC" 
+                        data-product-price="$26.00" 
+                        onclick="sendWhatsAppMessage(this)">
+                         <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                        </button>
+  
+                    </div>
+                  </div>
+  
+                  <div class="card-content">
+  
+                    <div class="price">
+                      <span class="span">$26.00</span>
+                    </div>
+  
+                    <h3>
+                        <p class="card-title" style="cursor: pointer;">PERFUME TEMPTATION MYSTIC</p>
+                    </h3>
+  
+                    <div class="card-rating">
+  
+                      <div class="rating-wrapper" aria-label="5 start rating">
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                        <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      </div>
+  
+                      <p class="rating-text">Cantidad: 2</p>
+  
+                    </div>
+  
+                  </div>
+  
+                </div>
+              </li>
+
+            <li class="scrollbar-item">
+              <div class="shop-card">
+
+                <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                  <img src="img/zentro.jpeg" width="540" height="720" loading="lazy"
+                    alt="Facial cleanser" class="img-cover">
+
+                  <div class="card-actions">
+
+                    <button class="action-btn" aria-label="send to WhatsApp" 
+                    data-product-name="PERFUME ZENTRO" 
+                    data-product-price="$28.00" 
+                    onclick="sendWhatsAppMessage(this)">
+                     <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                    </button>
+
+                  </div>
+                </div>
+
+                <div class="card-content">
+
+                  <div class="price">
+                    <span class="span">$28.00</span>
+                  </div>
+
+                  <h3>
+                    <p class="card-title" style="cursor: pointer;">PERFUME ZENTRO</p>
+                  </h3>
+
+                  <div class="card-rating">
+
+                    <div class="rating-wrapper" aria-label="5 start rating">
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                      <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    </div>
+
+                    <p class="rating-text">Cantidad: 4</p>
+
+                  </div>
+
+                </div>
+
+              </div>
+            </li>
+
+          </ul>
+
+        </div>
+      </section>
+
+      <!-- 
+        - #BANNER
+      -->
+
+      <section class="section banner" aria-label="banner" data-section>
+        <div class="container">
+
+          <ul class="banner-list">
+
+            <li>
+              <div class="banner-card banner-card-1 has-before hover:shine">
+
+                <p class="card-subtitle">Oferta de Lanzamiento</p>
+
+                <h2 class="h2 card-title">Descubre el nuevo protector solar</h2>
+
+                <div class="has-bg-image" style="background-image: url('img/totalblockdermafusion.jpg')"></div>
+
+              </div>
+            </li>
+
+            <li>
+              <div class="banner-card banner-card-2 has-before hover:shine">
+
+                <h2 class="h2 card-title"> <span class="highlightwhite">Ofertas Especiales</span></h2>
+
+                <p class="card-text">
+               PRODUCTOS DE PROTECCIÓN SOLAR </p>
+
+                <a href="#sunscreen" class="btn btn-secondary">REVISA AHORA</a>
+
+                <div class="has-bg-image" style="background-image: url('img/pielcuidadosolar.webp')"></div>
+
+              </div>
+            </li>
+
+          </ul>
+
+        </div>
+      </section>
+
+        <!-- 
+        - #PRODUCTOS-SUNSCREEN
+      -->
+    <section class="section shop" id="sunscreen" aria-label="shop" data-section>
+     <div class="container">
+
+      <div class="title-wrapper">
+        <h2 class="h2 section-title">PROTECTORES SOLARES | SUNSCREEN</h2>
+
+        <a href="https://www.facebook.com/catalogosdemodaecuador" class="btn-link">
+          <span class="span">Descubre más</span>
+
+          <ion-icon name="arrow-forward" aria-hidden="true"></ion-icon>
+        </a>
+      </div>
+
+      <ul class="has-scrollbar">
+
+        <li class="scrollbar-item">
+            <div class="shop-card">
+  
+              <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                <img src="img/protectordermafusion.jpg" width="540" height="720" loading="lazy"
+                  alt="Bio-shroom Rejuvenating Serum" class="img-cover">
+              
+                  <span class="badge badge-hot" aria-label="HOT">HOT</span>
+              
+                <div class="card-actions">
+  
+                  <button class="action-btn" aria-label="send to WhatsApp" 
+                  data-product-name="PROTECTOR DERMAFUSION 50ml" 
+                  data-product-price="$19.99" 
+                  onclick="sendWhatsAppMessage(this)">
+                   <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                  </button>
+  
+  
+                </div>
+              </div>
+  
+              <div class="card-content">
+  
+                <div class="price">
+                  <span class="span">$19.99</span>
+                </div>
+  
+                <h3>
+                  <p class="card-title" style="cursor: pointer;">PROTECTOR DERMAFUSION 50ml</p>
+
+                </h3>
+  
+                <div class="card-rating">
+  
+                  <div class="rating-wrapper" aria-label="5 start rating">
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  </div>
+  
+                  <p class="rating-text">Cantidad: 1</p>
+  
+                </div>
+  
+              </div>
+  
+            </div>
+          </li>
+
+        <li class="scrollbar-item">
+          <div class="shop-card">
+
+            <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+              <img src="img/protectorsolarjumbo.jpg" width="540" height="720" loading="lazy"
+                alt="Facial cleanser" class="img-cover">
+
+              <span class="badge" aria-label="50% off">-50%</span>
+
+              <div class="card-actions">
+
+                <button class="action-btn" aria-label="send to WhatsApp" 
+                data-product-name="PROTECTOR SOLAR JUMBO 140g" 
+                data-product-price="$16.00" 
+                onclick="sendWhatsAppMessage(this)">
+                  <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+              </button>
+              
+                  
+              </div>
+            </div>
+
+            <div class="card-content">
+
+              <div class="price">
+                <del class="del">$32.00</del>
+
+                <span class="span">$16.00</span>
+              </div>
+
+              <h3>
+                <p class="card-title" style="cursor: pointer;">PROTECTOR SOLAR 140g</p>
+
+              </h3>
+
+              <div class="card-rating">
+
+                <div class="rating-wrapper" aria-label="5 start rating">
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                </div>
+
+                <p class="rating-text">Cantidad: 5</p>
+
+              </div>
+
+            </div>
+
+          </div>
+          
+        </li>
+
+          <li class="scrollbar-item">
+          <div class="shop-card">
+
+            <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+              <img src="img/protectorsport.jpg" width="540" height="720" loading="lazy"
+                alt="Bio-shroom Rejuvenating Serum" class="img-cover">
+            
+                <span class="badge" aria-label="50% off">-50%</span>
+
+              <div class="card-actions">
+
+                <button class="action-btn" aria-label="send to WhatsApp" 
+                data-product-name="PROTECTOR SOLAR SPORT 140g" 
+                data-product-price="$16.00" 
+                onclick="sendWhatsAppMessage(this)">
+                 <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                </button>
+
+              </div>
+            </div>
+
+            <div class="card-content">
+
+                <div class="price">
+                    <del class="del">$32.00</del>
+    
+                    <span class="span">$16.00</span>
+                  </div>
+    
+
+              <h3>
+                <p class="card-title" style="cursor: pointer;">PROTECTOR SOLAR SPORT 140g</p>
+
+              </h3>
+
+              <div class="card-rating">
+
+                <div class="rating-wrapper" aria-label="5 start rating">
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                </div>
+
+                <p class="rating-text">Cantidad: 4</p>
+
+              </div>
+
+            </div>
+
+          </div>
+        </li>
+
+        <li class="scrollbar-item">
+            <div class="shop-card">
+
+              <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                <img src="img/protectorkid.jpg" width="540" height="720" loading="lazy"
+                  alt="Bio-shroom Rejuvenating Serum" class="img-cover">
+
+                <div class="card-actions">
+
+                    <button class="action-btn" aria-label="send to WhatsApp" 
+                data-product-name="PROTECTOR SOLAR PARA NIÑOS 140g" 
+                data-product-price="$16.00" 
+                onclick="sendWhatsAppMessage(this)">
+                 <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                </button>
+
+                </div>
+              </div>
+
+              <div class="card-content">
+
+                <div class="price">
+                  <span class="span">$16.00</span>
+                </div>
+
+                <h3>
+                  <p class="card-title" style="cursor: pointer;">PROTECTOR SOLAR KIDS 140g</p>
+
+                </h3>
+
+                <div class="card-rating">
+
+                  <div class="rating-wrapper" aria-label="5 start rating">
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  </div>
+
+                  <p class="rating-text">Cantidad: 3</p>
+
+                </div>
+
+              </div>
+
+            </div>
+          </li>
+
+        <li class="scrollbar-item">
+          <div class="shop-card">
+
+            <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+              <img src="img/protectormatificante.webp" width="540" height="720" loading="lazy"
+                alt="Coffee Bean Caffeine Eye Cream" class="img-cover">
+
+              <div class="card-actions">
+
+                <button class="action-btn" aria-label="send to WhatsApp" 
+                data-product-name="PROTECTOR MATIFICANTE 80g" 
+                data-product-price="$13.00" 
+                onclick="sendWhatsAppMessage(this)">
+                 <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                </button>
+
+              </div>
+            </div>
+
+            <div class="card-content">
+
+              <div class="price">
+                <span class="span">$13.00</span>
+              </div>
+
+              <h3>
+                <p class="card-title" style="cursor: pointer;">PROTECTOR MATIFICANTE 80g</p>
+
+              </h3>
+
+              <div class="card-rating">
+
+                <div class="rating-wrapper" aria-label="5 start rating">
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  <ion-icon name="star" aria-hidden="true"></ion-icon>
+                </div>
+
+                <p class="rating-text">Cantidad: 3</p>
+
+              </div>
+
+            </div>
+
+          </div>
+        </li>
+
+        <li class="scrollbar-item">
+            <div class="shop-card">
+
+              <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                <img src="img/protectorsolar50.jpg" width="540" height="720" loading="lazy"
+                  alt="Coffee Bean Caffeine Eye Cream" class="img-cover">
+
+                <div class="card-actions">
+
+                    <button class="action-btn" aria-label="send to WhatsApp" 
+                data-product-name="PROTECTOR SOLAR 80g" 
+                data-product-price="$12.00" 
+                onclick="sendWhatsAppMessage(this)">
+                 <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                </button>
+
+                </div>
+              </div>
+
+              <div class="card-content">
+
+                <div class="price">
+                  <span class="span">$12.00</span>
+                </div>
+
+                <h3>
+                  <p class="card-title" style="cursor: pointer;">PROTECTOR SOLAR 80g</p>
+
+                </h3>
+
+                <div class="card-rating">
+
+                  <div class="rating-wrapper" aria-label="5 start rating">
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  </div>
+
+                  <p class="rating-text">Cantidad: 4</p>
+
+                </div>
+
+              </div>
+
+            </div>
+          </li>
+
+          <li class="scrollbar-item">
+            <div class="shop-card">
+
+              <div class="card-banner img-holder" style="--width: 540; --height: 720;">
+                <img src="img/protectormineral.jpg" width="540" height="720" loading="lazy"
+                  alt="Coffee Bean Caffeine Eye Cream" class="img-cover">
+
+                <div class="card-actions">
+
+                    <button class="action-btn" aria-label="send to WhatsApp" 
+                data-product-name="PROTECTOR SOLAR MINERAL 80g" 
+                data-product-price="$13.00" 
+                onclick="sendWhatsAppMessage(this)">
+                 <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+                </button>
+
+                </div>
+              </div>
+
+              <div class="card-content">
+
+                <div class="price">
+                  <span class="span">$13.00</span>
+                </div>
+
+                <h3>
+                  <p class="card-title" style="cursor: pointer;">PROTECTOR SOLAR MINERAL 80g</p>
+
+                </h3>
+
+                <div class="card-rating">
+
+                  <div class="rating-wrapper" aria-label="5 start rating">
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                    <ion-icon name="star" aria-hidden="true"></ion-icon>
+                  </div>
+
+                  <p class="rating-text">Cantidad: 4</p>
+
+                </div>
+
+              </div>
+
+            </div>
+          </li>
+
+
+      </ul>
+
+    </div>
+  </section>
+
+      <!-- 
+        - #FEATURE
+      -->
+
+      <section class="section feature" aria-label="feature" data-section>
+        <div class="container">
+
+          <h2 class="h2-large section-title">¿Por qué comprar en Angie Catálogos?</h2>
+
+          <ul class="flex-list">
+
+            <li class="flex-item">
+              <div class="feature-card">
+
+
+                <h3 class="h3 card-title">Productos de calidad</h3>
+
+                <p class="card-text">
+                    Nuestras colecciones cumplen con los más altos estándares de calidad y no contienen ingredientes agresivos o dañinos.
+                </p>
+
+              </div>
+            </li>
+
+            <li class="flex-item">
+              <div class="feature-card">
+                <h3 class="h3 card-title">Completamente confiable</h3>
+
+                <p class="card-text">
+                    Cada compra con nosotros es segura y transparente, asegurando productos auténticos y una experiencia de compra agradable.
+                </p>
+
+              </div>
+            </li>
+
+            <li class="flex-item">
+              <div class="feature-card">
+                <h3 class="h3 card-title">Precios de locura</h3>
+
+                <p class="card-text">
+                    Ofrecemos precios increíbles sin comprometer la calidad, para que puedas disfrutar de lo mejor en nuestros productos a un costo accesible.
+                </p>
+
+              </div>
+            </li>
+
+          </ul>
+
+        </div>
+      </section>
+
+
+      <!-- 
+        - #OFFER
+      -->
+
+      <section class="section offer" id="offer" aria-label="offer" data-section>
+        <div class="container">
+
+          <figure class="offer-banner">
+            <img src="img/desodorantes.jpeg" width="305" height="408" loading="lazy" alt="offer products"
+              class="w-100">
+
+            <img src="img/soulremovebackground.png" width="450" height="625" loading="lazy" alt="offer products"
+              class="w-100">
+          </figure>
+
+          <div class="offer-content">
+
+            <p class="offer-subtitle">
+              <span class="span">OFERTA ESPECIAL POR TIEMPO LIMITADO</span>
+
+              <span class="badge" aria-label="20% off">-40%</span>
+            </p>
+
+            <h2 class="h2-large section-title">OHM SOUL Y DESODORANTE</h2>
+
+            <p class="section-text">
+                Perfume con bergamota cardamomo de Guatemala y madera de cedro.     
+                <span class="highlight">Aroma maderoso aromático</span>
+                <p class="rating-text">Puede seleccionar el desodorante de su preferencia</p>
+
+            </p>
+
+            <div class="countdown">
+                <span class="time" aria-label="days" id="day">15</span>
+                <span class="time" aria-label="hours" id="hour">21</span>
+                <span class="time" aria-label="minutes" id="minute">46</span>
+                <span class="time" aria-label="seconds" id="second">08</span>
+            </div>
+            <p id="timer"></p>
+
+         
+
+            <a href="#" class="btn btn-primary" id="whatsapp-button" onclick="redirectToWhatsApp()">Obtenerlo por $30.00</a>
+
+          </div>
+
+        </div>
+      </section>
+
+    </article>
+  </main>
+
+  <!-- 
+    - #FOOTER
+  -->
+
+  <footer class="footer" data-section>
+    <div class="container">
+
+      <div class="footer-top">
+
+        <ul class="footer-list">
+
+          <li>
+            <p class="footer-list-title">Angie Catálogos</p>
+          </li>
+
+
+          <li>
+            <p class="footer-list-text bold">+593 980 441 321</p>
+          </li>
+
+          <li>
+            <p class="footer-list-text">pi.larcaizac@hotmail.com</p>
+          </li>
+
+        </ul>
+
+        <ul class="footer-list">
+
+            <li>
+              <p class="footer-list-title">Ubicación</p>
+            </li>
+  
+  
+            <li>
+              <p class="footer-list-text bold">Ecuador, Pichincha, Mejía</p>
+            </li>
+  
+            <li>
+              <p class="footer-list-text">Machachi - Av. Fernández Salvador y L Vía Tesalia
+            </p>
+            </li>
+  
+          </ul>
+
+          
+
+          <ul class="footer-list">
+
+            <li>
+              <p class="footer-list-title">Información</p>
+            </li>
+  
+            <li>
+              <a href="index.html" class="footer-link">Inicio - Página Princial</a>
+            </li>
+  
+            <li>
+              <a href="#perfumes" class="footer-link">Perfumes</a>
+            </li>
+  
+            <li>
+              <a href="#sunscreen" class="footer-link">Protectores Solares | Sunscreen</a>
+            </li>
+  
+          </ul>
+        
+
+
+        <div class="footer-list">
+
+          <p class="newsletter-title">CONTÁCTANOS</p>
+
+          <p class="newsletter-text">
+        Con tan sólo ingresar tu correo electrónico, conviértete en el primero en enterarte de nuevas colecciones, ofertas y lanzamientos de productos. 
+</p>
+
+  <form action="https://formsubmit.co/javiercaiza220158@gmail.com" class="newsletter-form" method="POST">
+              <input type="email" name="correo" placeholder="CORREO ELECTRÓNICO" required class="email-field">
+
+
+            <button type="submit" class="btn btn-primary">Enviar</button>
+          </form>
+
+        </div>
+
+      </div>
+
+
+    </div>
+  </footer>
+
+  <!-- 
+    - #BACK TO TOP
+  -->
+
+  <a href="#top" class="back-top-btn" aria-label="back to top" data-back-top-btn>
+    <ion-icon name="arrow-up" aria-hidden="true"></ion-icon>
+  </a>
+
+  <!-- 
+    - custom js link
+  -->
+
+  <script src="products.js"></script>
+
+  <!-- 
+    - ionicon link
+  -->
+  <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+
+</body>
+
+</html>

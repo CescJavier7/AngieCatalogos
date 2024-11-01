@@ -67,3 +67,4 @@ function toggleButtons() {
       socialButtons.style.display = "none";
   }
 }
+
