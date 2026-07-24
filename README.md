@@ -2,6 +2,9 @@
 
 Tienda online de productos de belleza, ropa y pijamas en Ecuador.
 
+> El sitio estático original vive en `legacy/` (rama `legacy-static`) y sigue
+> publicado en https://cescjavier7.github.io/AngieCatalogos/
+
 ## Estructura
 
 | Carpeta | Contenido |
