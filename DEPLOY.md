@@ -1,51 +1,75 @@
-# Despliegue en el VPS (DigitalOcean 2 GB · Docker + Nginx del host)
+# Despliegue — tienda.cescjavier.dev (VPS DO 2 GB · Docker + Nginx host · Cloudflare)
 
-## Requisitos previos
-1. **Dominio** con DNS apuntando al VPS (`198.211.103.147`):
-   - `A  @    → 198.211.103.147` (tienda)
-   - `A  api  → 198.211.103.147` (API + admin)
-2. Swap recomendado en 2 GB de RAM (una vez):
-   ```bash
-   fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-   echo '/swapfile none swap sw 0 0' >> /etc/fstab
-   ```
+Dominios (el wildcard `*.cescjavier.dev` ya apunta al VPS — DNS listo):
+- Tienda: **https://tienda.cescjavier.dev**
+- API + admin: **https://tienda-api.cescjavier.dev** (admin en `/app`)
 
-## Pasos
+## 0. Preparación (una sola vez)
 ```bash
-# 1. Código
+# Swap: recomendado con 2 GB de RAM
+fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+# Inventario: ver qué puertos/sitios ya usa el servidor (para NO chocar)
+docker ps --format '{{.Names}}\t{{.Ports}}'
+ss -tlnp | grep -E ':(80|443|3300|9000)\s'
+grep -r server_name /etc/nginx/sites-enabled/ 2>/dev/null
+```
+> Si `9000` o `3300` ya están ocupados, cambiar el lado izquierdo del mapeo
+> en `docker-compose.prod.yml` (p. ej. `127.0.0.1:9400:9000`) y en `nginx-angie.conf`.
+
+## 1. Código y secretos
+```bash
 git clone https://github.com/CescJavier7/AngieCatalogos.git && cd AngieCatalogos/docker
-
-# 2. Secretos
 cp .env.prod.template .env.prod
-nano .env.prod          # dominios + passwords (openssl rand -hex 32)
+nano .env.prod   # POSTGRES_PASSWORD y secretos: openssl rand -hex 32 (los dominios ya vienen puestos)
+```
 
-# 3. Levantar (primera vez tarda: compila las imágenes)
+## 2. Levantar contenedores
+```bash
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker ps --format '{{.Names}}\t{{.Status}}' | grep angie-prod
+```
 
-# 4. Datos iniciales (solo la primera vez)
+## 3. Datos iniciales (solo la primera vez)
+```bash
 docker exec -it angie-prod-backend npx medusa user -e TU_CORREO -p TU_PASSWORD_ADMIN
 docker exec -it angie-prod-backend npx medusa exec ./src/scripts/seed.ts
 
-# 5. Publishable key → .env.prod
+# Publishable key → pegarla en MEDUSA_PUBLISHABLE_KEY de .env.prod
 docker exec angie-prod-postgres psql -U medusa -d angiecatalogos -tAc \
   "SELECT token FROM api_key WHERE type='publishable' LIMIT 1"
-nano .env.prod          # pegar en MEDUSA_PUBLISHABLE_KEY
+nano .env.prod
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d storefront
-
-# 6. Nginx del host + HTTPS
-cp nginx-angie.conf /etc/nginx/sites-available/angie   # editar TU_DOMINIO
-ln -s /etc/nginx/sites-available/angie /etc/nginx/sites-enabled/
-nginx -t && systemctl reload nginx
-certbot --nginx -d TU_DOMINIO -d api.TU_DOMINIO
 ```
 
-## Verificación
-- `https://TU_DOMINIO` → tienda
-- `https://api.TU_DOMINIO/health` → `OK`
-- `https://api.TU_DOMINIO/app` → panel admin
+## 4. Nginx del host
+```bash
+cp nginx-angie.conf /etc/nginx/sites-available/angie
+ln -s /etc/nginx/sites-available/angie /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+```
 
-## Notas
-- Postgres/Redis **no exponen puertos**: no chocan con los otros contenedores del VPS.
-- La tienda usa el puerto local **3300** (por si el 3000 está ocupado por otro proyecto).
-- Actualizar la app: `git pull && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build`
-- Backup de la base: `docker exec angie-prod-postgres pg_dump -U medusa angiecatalogos > backup_$(date +%F).sql`
+## 5. HTTPS con Cloudflare (el dominio está proxied ☁️)
+Cloudflare da el candado en el borde. En el panel: **SSL/TLS → Overview**:
+- Si el modo es **Flexible** → listo, nada más (Cloudflare→VPS va por el puerto 80).
+- Si es **Full / Full (strict)** → crear un **Origin Certificate**
+  (SSL/TLS → Origin Server → Create, para `*.cescjavier.dev`), guardarlo en
+  `/etc/ssl/cloudflare/` y añadir a cada server block:
+  ```
+  listen 443 ssl;
+  ssl_certificate     /etc/ssl/cloudflare/cert.pem;
+  ssl_certificate_key /etc/ssl/cloudflare/key.pem;
+  ```
+> ⚠️ El modo SSL es de TODO el dominio: no cambiarlo sin revisar los otros
+> sitios que ya corren en el VPS.
+
+## 6. Verificar
+- https://tienda-api.cescjavier.dev/health → `OK`
+- https://tienda-api.cescjavier.dev/app → panel admin
+- https://tienda.cescjavier.dev → tienda
+
+## Operación
+- Actualizar: `git pull && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build`
+- Backup BD: `docker exec angie-prod-postgres pg_dump -U medusa angiecatalogos > backup_$(date +%F).sql`
+- Logs: `docker logs -f angie-prod-backend`
