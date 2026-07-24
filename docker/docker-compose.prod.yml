@@ -59,7 +59,8 @@ services:
     restart: unless-stopped
     # Sin db:migrate al arrancar (las migraciones se corren vía túnel desde fuera)
     # y desde .medusa/server: el modo producción de Medusa exige arrancar ahí
-    command: ["sh", "-c", "cd .medusa/server && PATH=$$PATH:/app/node_modules/.bin medusa start"]
+    # El symlink expone /app/static (imágenes de producto) desde el dir compilado
+    command: ["sh", "-c", "cd .medusa/server && ln -sfn /app/static static && PATH=$$PATH:/app/node_modules/.bin medusa start"]
     depends_on:
       postgres:
         condition: service_healthy
