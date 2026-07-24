@@ -30,9 +30,14 @@ const loaded = ref(false)
 onMounted(async () => {
   await refresh()
 
-  // Si hay sesión, precargamos sus datos
+  // Comprar requiere cuenta: así la logística de cada pedido queda bien atada
   await fetchCustomer()
-  if (customer.value) {
+  if (!customer.value) {
+    await navigateTo("/cuenta?next=/checkout")
+    return
+  }
+
+  {
     form.email = customer.value.email ?? ""
     form.first_name = customer.value.first_name ?? ""
     form.last_name = customer.value.last_name ?? ""
@@ -122,10 +127,6 @@ useHead({ title: "Checkout | Angie Catálogos" })
     <span class="eyebrow">Finalizar compra</span>
     <h1>Ya casi es tuyo</h1>
 
-    <p v-if="loaded && !customer && cart?.items?.length" class="checkout__hint">
-      💡 <NuxtLink to="/cuenta">Inicia sesión o crea tu cuenta</NuxtLink> para
-      guardar tus datos y seguir tu pedido paso a paso.
-    </p>
 
     <div v-if="loaded && !cart?.items?.length" class="checkout__empty">
       <p>Tu carrito está vacío.</p>

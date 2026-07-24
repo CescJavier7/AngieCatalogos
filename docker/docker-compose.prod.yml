@@ -1,0 +1,106 @@
+# Producción — VPS DigitalOcean (2 GB)
+#
+# Diseñado para convivir con otros contenedores del servidor:
+#   - Postgres y Redis NO publican puertos: solo la red interna "angie" los ve
+#   - Backend y tienda se atan a 127.0.0.1 → el Nginx del host hace de proxy
+#   - Todo lleva prefijo angie- (contenedores, volúmenes, red)
+#
+# Uso:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+
+name: angiecatalogos
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: angie-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - angie_pgdata:/var/lib/postgresql/data
+    networks: [angie]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: angie-prod-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - angie_redisdata:/data
+    networks: [angie]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 160M
+
+  backend:
+    build: ../backend
+    container_name: angie-prod-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      STORE_CORS: ${STORE_CORS}
+      ADMIN_CORS: ${ADMIN_CORS}
+      AUTH_CORS: ${AUTH_CORS}
+      BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
+    ports:
+      - "127.0.0.1:9000:9000"
+    networks: [angie]
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  storefront:
+    build: ../storefront
+    container_name: angie-prod-storefront
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NUXT_PUBLIC_MEDUSA_URL: ${BACKEND_PUBLIC_URL}
+      NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${MEDUSA_PUBLISHABLE_KEY}
+      NUXT_PUBLIC_GOOGLE_AUTH: ${NUXT_PUBLIC_GOOGLE_AUTH:-false}
+    ports:
+      - "127.0.0.1:3300:3000"
+    networks: [angie]
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+networks:
+  angie:
+    name: angie
+
+volumes:
+  angie_pgdata:
+  angie_redisdata:

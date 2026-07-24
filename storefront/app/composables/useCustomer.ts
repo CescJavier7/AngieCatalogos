@@ -72,7 +72,11 @@ export const useCustomer = () => {
   }
 
   /** Redirige a Google. El regreso lo maneja /cuenta/callback. */
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (next?: string) => {
+    // Google no conserva la query: guardamos el destino en una cookie corta
+    if (next) {
+      useCookie("angie_next", { maxAge: 600 }).value = next
+    }
     const result = await medusa.auth.login("customer", "google", {})
     if (typeof result === "object" && result.location) {
       window.location.href = result.location

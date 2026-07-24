@@ -69,7 +69,7 @@ const quickAdd = async (p: any) => {
             personalizada. Compra y ahorra — o emprende y gana con nosotros.
           </p>
           <div class="hero__actions">
-            <a href="#catalogo" class="btn">Descubrir el catálogo</a>
+            <NuxtLink to="/catalogo" class="btn">Descubrir el catálogo</NuxtLink>
             <a
               href="https://wa.me/593980441321"
               target="_blank"

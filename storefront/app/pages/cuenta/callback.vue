@@ -35,7 +35,10 @@ onMounted(async () => {
 
     await fetchCustomer()
     await claimCart()
-    await navigateTo("/cuenta")
+    const nextCookie = useCookie("angie_next")
+    const next = nextCookie.value || "/cuenta"
+    nextCookie.value = null
+    await navigateTo(next)
   } catch {
     status.value = "error"
   }

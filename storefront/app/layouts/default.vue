@@ -20,7 +20,8 @@ onMounted(() => {
 
         <nav class="header__nav">
           <NuxtLink to="/">Inicio</NuxtLink>
-          <NuxtLink to="/#catalogo">Catálogo</NuxtLink>
+          <NuxtLink to="/catalogo">Catálogo</NuxtLink>
+          <NuxtLink to="/catalogo" class="header__promo">Promociones</NuxtLink>
         </nav>
 
         <div class="header__actions">
@@ -157,6 +158,10 @@ main {
 
 .header__nav a:hover::after {
   transform: scaleX(1);
+}
+
+.header__promo {
+  color: var(--primary);
 }
 
 .header__actions {
