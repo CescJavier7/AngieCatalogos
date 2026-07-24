@@ -1,0 +1,27 @@
+{
+  "name": "angiecatalogos-storefront",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@medusajs/js-sdk": "^2.16.0",
+    "nuxt": "^4.1.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@parcel/watcher",
+      "sharp",
+      "better-sqlite3",
+      "unrs-resolver"
+    ]
+  }
+}
