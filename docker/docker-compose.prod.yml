@@ -85,7 +85,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 1200M
 
   storefront:
     build: ../storefront
