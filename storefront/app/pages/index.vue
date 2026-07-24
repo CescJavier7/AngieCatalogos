@@ -1,64 +1,29 @@
 <script setup lang="ts">
-const medusa = useMedusa()
-const { data: region } = await useRegion()
-const { addItem, busy } = useCart()
+useHead({ title: "Angie Catálogos | Belleza y Moda en Ecuador" })
 
-const { data: products } = await useAsyncData(
-  "home-products",
-  async () => {
-    const { products } = await medusa.store.product.list({
-      limit: 100,
-      region_id: region.value?.id,
-      fields:
-        "id,title,handle,thumbnail,*images,*variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,*categories",
-    })
-    return products
+const faqs = [
+  {
+    q: "¿Los productos son originales?",
+    a: "Sí, al 100%. Trabajamos únicamente con marcas de catálogo reconocidas a nivel nacional, con años de trayectoria y altos estándares de calidad. Cada producto llega sellado y con el respaldo de su marca.",
   },
-  { watch: [region] }
-)
-
-const categories = computed(() => {
-  const map = new Map<string, { name: string; items: NonNullable<typeof products.value> }>()
-  for (const p of products.value ?? []) {
-    const cat = p.categories?.[0]?.name ?? "Otros"
-    if (!map.has(cat)) map.set(cat, { name: cat, items: [] })
-    map.get(cat)!.items.push(p)
-  }
-  return [...map.values()]
-})
-
-const price = (p: any) =>
-  formatMoney(p.variants?.[0]?.calculated_price?.calculated_amount)
-
-/** Unidades disponibles (null = no se gestiona inventario → siempre disponible) */
-const stockOf = (p: any): number | null => {
-  const v = p.variants?.[0]
-  if (!v || v.manage_inventory === false) return null
-  return v.inventory_quantity ?? null
-}
-
-const soldOut = (p: any) => {
-  const q = stockOf(p)
-  return q !== null && q <= 0
-}
-const lowStock = (p: any) => {
-  const q = stockOf(p)
-  return q !== null && q > 0 && q <= 5
-}
-
-const added = ref<string | null>(null)
-
-const quickAdd = async (p: any) => {
-  const variantId = p.variants?.[0]?.id
-  if (!variantId || soldOut(p)) return
-  await addItem(variantId)
-  added.value = p.id
-  setTimeout(() => (added.value = null), 1600)
-}
+  {
+    q: "¿Cuánto tardan los pedidos y cómo los recibo?",
+    a: "Entre 1 y 3 días hábiles según tu ubicación en Ecuador. Hacemos envíos a todo el país y, si estás en Machachi, puedes retirar tu pedido sin costo. Te mantenemos informada en cada paso por WhatsApp.",
+  },
+  {
+    q: "¿Puedo vender por catálogo con ustedes?",
+    a: "¡Claro! No necesitas experiencia: te capacitamos paso a paso, con apoyo constante y acceso a las mejores marcas. Trabaja desde casa, a tu ritmo, y genera tus propios ingresos.",
+  },
+  {
+    q: "¿Cómo pago mi pedido?",
+    a: "Al confirmar tu pedido en la tienda coordinamos el pago contigo por WhatsApp (transferencia o contra entrega). Muy pronto también podrás pagar en línea con tarjeta.",
+  },
+]
 </script>
 
 <template>
   <div>
+    <!-- ── Hero ── -->
     <section class="hero">
       <div class="container hero__inner">
         <div class="hero__text">
@@ -80,61 +45,127 @@ const quickAdd = async (p: any) => {
             </a>
           </div>
           <ul class="hero__trust">
-            <li><strong>1–3 días</strong><span>envío nacional</span></li>
+            <li><strong>8 años</strong><span>en el mercado</span></li>
             <li><strong>100%</strong><span>productos originales</span></li>
             <li><strong>+9 marcas</strong><span>de catálogo</span></li>
           </ul>
         </div>
         <div class="hero__media">
-          <img src="/img/header-bg.webp" alt="Venta por catálogo en Ecuador" />
+          <img src="/img/header-bg.webp" alt="Angie — asesora de venta por catálogo en Ecuador" />
         </div>
       </div>
     </section>
 
-    <section id="catalogo" class="catalog container">
-      <template v-for="cat in categories" :key="cat.name">
-        <div v-if="cat.items.length" class="catalog__section">
-          <div class="catalog__head">
-            <span class="eyebrow">Colección</span>
-            <h2>{{ cat.name }}</h2>
-          </div>
+    <!-- ── Historia del negocio ── -->
+    <section class="about container">
+      <div class="about__intro">
+        <span class="eyebrow">Nuestra historia</span>
+        <h2>8 años acompañando tu estilo</h2>
+        <p>
+          Angie Catálogos nació del sueño de acercar productos de belleza y moda
+          de verdad — originales, de calidad y a precios justos — a cada rincón
+          del Ecuador. Ocho años después, seguimos atendiendo con el mismo
+          cariño del primer día: asesoría personalizada, marcas confiables y
+          precios altamente competitivos que hacen que la elegancia esté al
+          alcance de todos.
+        </p>
+      </div>
 
-          <div class="grid">
-            <article v-for="p in cat.items" :key="p.id" class="card">
-              <NuxtLink :to="`/productos/${p.handle}`" class="card__media">
-                <img
-                  :src="p.thumbnail || p.images?.[0]?.url"
-                  :alt="p.title"
-                  loading="lazy"
-                  :class="{ 'img--soldout': soldOut(p) }"
-                />
-                <span v-if="soldOut(p)" class="badge badge--out">Agotado</span>
-                <span v-else-if="lowStock(p)" class="badge badge--low">
-                  ¡Últimas {{ stockOf(p) }}!
-                </span>
-              </NuxtLink>
-              <div class="card__body">
-                <NuxtLink :to="`/productos/${p.handle}`">
-                  <h3>{{ p.title }}</h3>
-                </NuxtLink>
-                <p class="card__price">{{ price(p) }}</p>
-                <button
-                  class="btn card__add"
-                  :disabled="busy || soldOut(p)"
-                  @click="quickAdd(p)"
-                >
-                  {{ soldOut(p) ? "Agotado" : added === p.id ? "Agregado ✓" : "Agregar al carrito" }}
-                </button>
-              </div>
-            </article>
-          </div>
+      <div class="about__grid">
+        <article class="value">
+          <span class="value__icon">✦</span>
+          <h3>Productos originales</h3>
+          <p>
+            Solo marcas de catálogo reconocidas, con garantía y respaldo.
+            Nada de imitaciones: calidad comprobada en cada entrega.
+          </p>
+        </article>
+        <article class="value">
+          <span class="value__icon">◈</span>
+          <h3>Precios competitivos</h3>
+          <p>
+            Compramos directo de catálogo para ofrecerte precios difíciles de
+            igualar — y promociones que premian tu confianza.
+          </p>
+        </article>
+        <article class="value">
+          <span class="value__icon">✧</span>
+          <h3>Asesoría personalizada</h3>
+          <p>
+            No vendemos por vender: te ayudamos a elegir la fragancia, el
+            cuidado o la prenda perfecta para ti o para regalar.
+          </p>
+        </article>
+        <article class="value">
+          <span class="value__icon">➳</span>
+          <h3>Envíos a todo Ecuador</h3>
+          <p>
+            Tu pedido llega en 1 a 3 días hábiles, seguro y con seguimiento.
+            En Machachi, el retiro es gratis.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ── Banda de datos ── -->
+    <section class="stats">
+      <div class="container stats__inner">
+        <div><strong>8</strong><span>años de trayectoria</span></div>
+        <div><strong>+9</strong><span>marcas de catálogo</span></div>
+        <div><strong>100%</strong><span>originales garantizados</span></div>
+        <div><strong>1–3</strong><span>días de entrega</span></div>
+      </div>
+    </section>
+
+    <!-- ── CTA catálogo / promos ── -->
+    <section class="cta container">
+      <div class="cta__card">
+        <div>
+          <h2>¿Lista para encontrar tu próximo favorito?</h2>
+          <p>Explora por marca, filtra por precio y descubre las promociones de la semana.</p>
         </div>
-      </template>
+        <div class="cta__actions">
+          <NuxtLink to="/catalogo" class="btn">Ver catálogo</NuxtLink>
+          <NuxtLink to="/catalogo" class="btn btn--ghost">Promociones</NuxtLink>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Emprende ── -->
+    <section class="join container">
+      <div class="join__text">
+        <span class="eyebrow">Emprende y gana</span>
+        <h2>¿Quieres generar tus propios ingresos?</h2>
+        <p>
+          Únete a nuestro equipo de venta por catálogo: capacitación completa,
+          apoyo constante y total flexibilidad para trabajar desde casa. No
+          necesitas experiencia — solo ganas de crecer.
+        </p>
+        <a
+          href="https://wa.me/593980441321?text=Hola%2C%20quiero%20informaci%C3%B3n%20para%20unirme%20al%20equipo%20de%20venta%20por%20cat%C3%A1logo"
+          target="_blank"
+          rel="noopener"
+          class="btn"
+        >
+          Quiero unirme
+        </a>
+      </div>
+    </section>
+
+    <!-- ── FAQ ── -->
+    <section class="faq container">
+      <span class="eyebrow">Preguntas frecuentes</span>
+      <h2>Resolvemos tus dudas</h2>
+      <details v-for="f in faqs" :key="f.q" class="faq__item">
+        <summary>{{ f.q }}</summary>
+        <p>{{ f.a }}</p>
+      </details>
     </section>
   </div>
 </template>
 
 <style scoped>
+/* ── Hero ── */
 .hero {
   background:
     radial-gradient(60% 90% at 85% 20%, rgba(230, 201, 136, 0.22) 0%, transparent 60%),
@@ -219,120 +250,201 @@ const quickAdd = async (p: any) => {
   box-shadow: 0 24px 60px rgba(155, 27, 96, 0.18);
 }
 
-.catalog {
-  padding-top: 3.5rem;
+/* ── Historia ── */
+.about {
+  padding-top: 4rem;
 }
 
-.catalog__section {
-  margin-bottom: 3.5rem;
+.about__intro {
+  max-width: 640px;
+  margin-bottom: 2.5rem;
 }
 
-.catalog__head {
-  margin-bottom: 1.5rem;
+.about__intro h2 {
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  margin: 0.4rem 0 0.9rem;
 }
 
-.catalog__head h2 {
-  font-size: 2.1rem;
-  margin-top: 0.35rem;
+.about__intro p {
+  color: var(--muted);
+  font-size: 1.05rem;
 }
 
-.grid {
+.about__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1.4rem;
 }
 
-.card {
-  background: var(--card);
+.value {
+  background: #fff;
   border: 1px solid var(--line);
   border-radius: 1rem;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  padding: 1.6rem 1.4rem;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card:hover {
-  transform: translateY(-5px);
+.value:hover {
+  transform: translateY(-4px);
   border-color: var(--gold-light);
-  box-shadow: 0 18px 40px rgba(42, 30, 38, 0.12);
+  box-shadow: 0 14px 34px rgba(42, 30, 38, 0.1);
 }
 
-.card__media {
-  aspect-ratio: 3 / 4;
-  overflow: hidden;
-  background: var(--blush);
-  position: relative;
+.value__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 1.3rem;
+  margin-bottom: 0.9rem;
 }
 
-.img--soldout {
-  filter: grayscale(0.9) opacity(0.6);
+.value h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.4rem;
 }
 
-.badge {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  padding: 0.3rem 0.8rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 800;
+.value p {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+/* ── Stats ── */
+.stats {
+  background: var(--ink);
+  margin-top: 4rem;
+  padding-block: 2.5rem;
+}
+
+.stats__inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.stats strong {
+  display: block;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 2.6rem;
+  color: var(--gold-light);
+  line-height: 1.1;
+}
+
+.stats span {
+  color: #cfc2ca;
+  font-size: 0.88rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.badge--out {
-  background: var(--ink);
-  color: #fff;
+/* ── CTA ── */
+.cta {
+  padding-top: 4rem;
 }
 
-.badge--low {
-  background: var(--gold);
-  color: #fff;
-}
-
-.card__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.45s ease;
-}
-
-.card:hover .card__media img {
-  transform: scale(1.05);
-}
-
-.card__body {
-  padding: 1rem 1rem 1.15rem;
+.cta__card {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  flex: 1;
-  text-align: center;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  background: linear-gradient(120deg, var(--primary-soft), rgba(230, 201, 136, 0.25));
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  padding: 2.25rem 2.5rem;
 }
 
-.card__body h3 {
-  font-size: 1.15rem;
-  font-weight: 600;
+.cta__card h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin-bottom: 0.35rem;
 }
 
-.card__body h3:hover {
-  color: var(--primary);
+.cta__card p {
+  color: var(--muted);
 }
 
-.card__price {
+.cta__actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ── Emprende ── */
+.join {
+  padding-top: 4rem;
+}
+
+.join__text {
+  max-width: 620px;
+}
+
+.join h2 {
+  font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+  margin: 0.4rem 0 0.8rem;
+}
+
+.join p {
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+}
+
+/* ── FAQ ── */
+.faq {
+  padding-top: 4rem;
+  max-width: 760px;
+}
+
+.faq h2 {
+  font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+  margin: 0.4rem 0 1.4rem;
+}
+
+.faq__item {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.faq__item summary {
+  cursor: pointer;
+  padding: 1.1rem 1.3rem;
+  font-weight: 700;
+  list-style: none;
+  position: relative;
+  padding-right: 3rem;
+}
+
+.faq__item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq__item summary::after {
+  content: "+";
+  position: absolute;
+  right: 1.3rem;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--gold);
-  font-weight: 800;
-  font-size: 1.05rem;
-  letter-spacing: 0.03em;
+  font-size: 1.4rem;
+  transition: transform 0.2s ease;
 }
 
-.card__add {
-  margin-top: auto;
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
+.faq__item[open] summary::after {
+  transform: translateY(-50%) rotate(45deg);
 }
 
+.faq__item p {
+  padding: 0 1.3rem 1.2rem;
+  color: var(--muted);
+}
+
+/* ── Responsive ── */
 @media (max-width: 820px) {
   .hero__inner {
     grid-template-columns: 1fr;
@@ -346,6 +458,10 @@ const quickAdd = async (p: any) => {
 
   .hero__trust {
     gap: 1.5rem;
+  }
+
+  .cta__card {
+    padding: 1.75rem 1.5rem;
   }
 }
 </style>
