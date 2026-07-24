@@ -26,5 +26,6 @@
   },
   "devDependencies": {
     "@medusajs/types": "^2.18.0"
-  }
+  },
+  "packageManager": "pnpm@10.33.2"
 }
