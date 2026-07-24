@@ -57,6 +57,9 @@ services:
     build: ../backend
     container_name: angie-prod-backend
     restart: unless-stopped
+    # Sin db:migrate al arrancar: las migraciones se corren desde fuera
+    # (túnel SSH + Mac) porque el droplet no aguanta ese proceso.
+    command: ["sh", "-c", "pnpm start"]
     depends_on:
       postgres:
         condition: service_healthy
