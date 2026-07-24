@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const medusa = useMedusa()
 const { data: region } = await useRegion()
+const { addItem, busy } = useCart()
 
 const { data: products } = await useAsyncData(
   "home-products",
@@ -16,23 +17,26 @@ const { data: products } = await useAsyncData(
 )
 
 const categories = computed(() => {
-  const map = new Map<string, { name: string; items: typeof products.value }>()
+  const map = new Map<string, { name: string; items: NonNullable<typeof products.value> }>()
   for (const p of products.value ?? []) {
     const cat = p.categories?.[0]?.name ?? "Otros"
     if (!map.has(cat)) map.set(cat, { name: cat, items: [] })
-    map.get(cat)!.items!.push(p)
+    map.get(cat)!.items.push(p)
   }
   return [...map.values()]
 })
 
-const price = (p: any) => {
-  const amount = p.variants?.[0]?.calculated_price?.calculated_amount
-  return amount != null ? `$${Number(amount).toFixed(2)}` : ""
-}
+const price = (p: any) =>
+  formatMoney(p.variants?.[0]?.calculated_price?.calculated_amount)
 
-const whatsapp = (p: any) => {
-  const msg = `Hola, estoy interesad@ en el producto: ${p.title} (${price(p)}), me gustaría obtener información.`
-  return `https://wa.me/593980441321?text=${encodeURIComponent(msg)}`
+const added = ref<string | null>(null)
+
+const quickAdd = async (p: any) => {
+  const variantId = p.variants?.[0]?.id
+  if (!variantId) return
+  await addItem(variantId)
+  added.value = p.id
+  setTimeout(() => (added.value = null), 1600)
 }
 </script>
 
@@ -41,31 +45,43 @@ const whatsapp = (p: any) => {
     <section class="hero">
       <div class="container hero__inner">
         <div class="hero__text">
-          <h1>¿Quieres <span>generar ganancias?</span></h1>
+          <span class="eyebrow">Venta por catálogo en Ecuador</span>
+          <h1>La belleza que <em>realza</em> quién eres</h1>
           <p>
-            Perfumes, protección solar y moda con la mejor asesoría en venta por
-            catálogo del Ecuador. Compra y ahorra, o emprende y gana.
+            Perfumes de autor, protección solar y moda seleccionada con asesoría
+            personalizada. Compra y ahorra — o emprende y gana con nosotros.
           </p>
           <div class="hero__actions">
-            <a href="#catalogo" class="btn">Ver catálogo</a>
+            <a href="#catalogo" class="btn">Descubrir el catálogo</a>
             <a
               href="https://wa.me/593980441321"
               target="_blank"
               rel="noopener"
-              class="btn btn--ghost"
+              class="btn btn--gold"
             >
-              Contáctame
+              Asesoría por WhatsApp
             </a>
           </div>
+          <ul class="hero__trust">
+            <li><strong>1–3 días</strong><span>envío nacional</span></li>
+            <li><strong>100%</strong><span>productos originales</span></li>
+            <li><strong>+9 marcas</strong><span>de catálogo</span></li>
+          </ul>
         </div>
-        <img src="/img/header-bg.webp" alt="Venta por catálogo en Ecuador" class="hero__img" />
+        <div class="hero__media">
+          <img src="/img/header-bg.webp" alt="Venta por catálogo en Ecuador" />
+        </div>
       </div>
     </section>
 
     <section id="catalogo" class="catalog container">
       <template v-for="cat in categories" :key="cat.name">
-        <div v-if="cat.items?.length" class="catalog__section">
-          <h2>{{ cat.name }}</h2>
+        <div v-if="cat.items.length" class="catalog__section">
+          <div class="catalog__head">
+            <span class="eyebrow">Colección</span>
+            <h2>{{ cat.name }}</h2>
+          </div>
+
           <div class="grid">
             <article v-for="p in cat.items" :key="p.id" class="card">
               <NuxtLink :to="`/productos/${p.handle}`" class="card__media">
@@ -76,14 +92,17 @@ const whatsapp = (p: any) => {
                 />
               </NuxtLink>
               <div class="card__body">
-                <h3>{{ p.title }}</h3>
+                <NuxtLink :to="`/productos/${p.handle}`">
+                  <h3>{{ p.title }}</h3>
+                </NuxtLink>
                 <p class="card__price">{{ price(p) }}</p>
-                <div class="card__actions">
-                  <NuxtLink :to="`/productos/${p.handle}`" class="btn">Ver detalle</NuxtLink>
-                  <a :href="whatsapp(p)" target="_blank" rel="noopener" class="btn btn--ghost">
-                    WhatsApp
-                  </a>
-                </div>
+                <button
+                  class="btn card__add"
+                  :disabled="busy"
+                  @click="quickAdd(p)"
+                >
+                  {{ added === p.id ? "Agregado ✓" : "Agregar al carrito" }}
+                </button>
               </div>
             </article>
           </div>
@@ -95,75 +114,109 @@ const whatsapp = (p: any) => {
 
 <style scoped>
 .hero {
-  background: linear-gradient(135deg, #fff5fb 0%, #fff8ea 100%);
+  background:
+    radial-gradient(60% 90% at 85% 20%, rgba(230, 201, 136, 0.22) 0%, transparent 60%),
+    linear-gradient(150deg, var(--blush) 0%, var(--bg) 70%);
   border-bottom: 1px solid var(--line);
 }
 
 .hero__inner {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: 1.05fr 0.95fr;
   align-items: center;
-  gap: 2rem;
-  padding-block: 3.5rem;
+  gap: 3rem;
+  padding-block: 4.5rem;
 }
 
 .hero__text h1 {
-  font-size: clamp(2rem, 4.5vw, 3.2rem);
-  line-height: 1.15;
-  margin-bottom: 1rem;
+  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  line-height: 1.08;
+  margin: 0.9rem 0 1rem;
 }
 
-.hero__text h1 span {
+.hero__text h1 em {
   color: var(--primary);
+  font-style: italic;
 }
 
-.hero__text p {
+.hero__text > p {
   color: var(--muted);
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-  max-width: 46ch;
+  font-size: 1.08rem;
+  margin-bottom: 1.75rem;
+  max-width: 48ch;
 }
 
 .hero__actions {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  margin-bottom: 2.25rem;
 }
 
-.hero__img {
+.hero__trust {
+  list-style: none;
+  display: flex;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.hero__trust li {
+  display: grid;
+  line-height: 1.3;
+}
+
+.hero__trust strong {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.45rem;
+  color: var(--primary);
+}
+
+.hero__trust span {
+  color: var(--muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+
+.hero__media {
+  position: relative;
+}
+
+.hero__media::before {
+  content: "";
+  position: absolute;
+  inset: 1.25rem -1.25rem -1.25rem 1.25rem;
+  border: 1px solid var(--gold-light);
   border-radius: 1.5rem;
-  box-shadow: 0 20px 50px rgba(210, 42, 140, 0.18);
+  z-index: 0;
+}
+
+.hero__media img {
+  position: relative;
+  z-index: 1;
+  border-radius: 1.5rem;
+  box-shadow: 0 24px 60px rgba(155, 27, 96, 0.18);
 }
 
 .catalog {
-  padding-top: 3rem;
+  padding-top: 3.5rem;
 }
 
 .catalog__section {
-  margin-bottom: 3rem;
+  margin-bottom: 3.5rem;
 }
 
-.catalog__section h2 {
-  font-size: 1.8rem;
-  margin-bottom: 1.25rem;
-  position: relative;
-  padding-left: 0.9rem;
+.catalog__head {
+  margin-bottom: 1.5rem;
 }
 
-.catalog__section h2::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.35rem;
-  bottom: 0.35rem;
-  width: 5px;
-  border-radius: 3px;
-  background: var(--accent);
+.catalog__head h2 {
+  font-size: 2.1rem;
+  margin-top: 0.35rem;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
   gap: 1.5rem;
 }
 
@@ -174,63 +227,76 @@ const whatsapp = (p: any) => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 14px 34px rgba(43, 32, 40, 0.12);
+  transform: translateY(-5px);
+  border-color: var(--gold-light);
+  box-shadow: 0 18px 40px rgba(42, 30, 38, 0.12);
 }
 
 .card__media {
   aspect-ratio: 3 / 4;
   overflow: hidden;
-  background: #faf5f8;
+  background: var(--blush);
 }
 
 .card__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.45s ease;
+}
+
+.card:hover .card__media img {
+  transform: scale(1.05);
 }
 
 .card__body {
-  padding: 1rem;
+  padding: 1rem 1rem 1.15rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
   flex: 1;
+  text-align: center;
 }
 
 .card__body h3 {
-  font-size: 1.05rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.card__body h3:hover {
+  color: var(--primary);
 }
 
 .card__price {
-  color: var(--primary);
+  color: var(--gold);
   font-weight: 800;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
 }
 
-.card__actions {
+.card__add {
   margin-top: auto;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
 }
 
-.card__actions .btn {
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-}
-
-@media (max-width: 760px) {
+@media (max-width: 820px) {
   .hero__inner {
     grid-template-columns: 1fr;
+    padding-block: 2.5rem;
+    gap: 2rem;
   }
 
-  .hero__img {
+  .hero__media {
     order: -1;
+  }
+
+  .hero__trust {
+    gap: 1.5rem;
   }
 }
 </style>

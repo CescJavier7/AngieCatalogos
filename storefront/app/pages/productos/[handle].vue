@@ -2,6 +2,7 @@
 const route = useRoute()
 const medusa = useMedusa()
 const { data: region } = await useRegion()
+const { addItem, busy } = useCart()
 
 const { data: product } = await useAsyncData(
   `product-${route.params.handle}`,
@@ -22,11 +23,19 @@ if (!product.value) {
 }
 
 const variant = computed(() => product.value?.variants?.[0])
+const price = computed(() =>
+  formatMoney(variant.value?.calculated_price?.calculated_amount)
+)
 
-const price = computed(() => {
-  const amount = variant.value?.calculated_price?.calculated_amount
-  return amount != null ? `$${Number(amount).toFixed(2)}` : ""
-})
+const quantity = ref(1)
+const added = ref(false)
+
+const add = async () => {
+  if (!variant.value) return
+  await addItem(variant.value.id, quantity.value)
+  added.value = true
+  setTimeout(() => (added.value = false), 1800)
+}
 
 const whatsappUrl = computed(() => {
   const msg = `Hola, estoy interesad@ en el producto: ${product.value?.title} (${price.value}), me gustaría obtener información.`
@@ -50,9 +59,9 @@ useHead(() => ({
       </div>
 
       <div class="product__info">
-        <p v-if="product.categories?.length" class="product__category">
+        <span v-if="product.categories?.length" class="eyebrow">
           {{ product.categories[0].name }}
-        </p>
+        </span>
         <h1>{{ product.title }}</h1>
         <p class="product__price">{{ price }}</p>
         <p class="product__desc">{{ product.description }}</p>
@@ -61,12 +70,25 @@ useHead(() => ({
           Presentación: <strong>{{ variant.title }}</strong>
         </p>
 
-        <div class="product__actions">
-          <!-- El carrito llega con el checkout (Fase 3b) -->
-          <a :href="whatsappUrl" target="_blank" rel="noopener" class="btn">
-            Pedir por WhatsApp
-          </a>
+        <div class="product__buy">
+          <div class="qty" aria-label="Cantidad">
+            <button :disabled="quantity <= 1" @click="quantity--">−</button>
+            <span>{{ quantity }}</span>
+            <button @click="quantity++">+</button>
+          </div>
+          <button class="btn product__add" :disabled="busy" @click="add">
+            {{ added ? "Agregado al carrito ✓" : "Agregar al carrito" }}
+          </button>
         </div>
+
+        <a
+          :href="whatsappUrl"
+          target="_blank"
+          rel="noopener"
+          class="btn btn--gold product__ws"
+        >
+          Consultar por WhatsApp
+        </a>
 
         <ul class="product__perks">
           <li>🚚 Envío a todo el Ecuador (1 a 3 días hábiles)</li>
@@ -97,34 +119,28 @@ useHead(() => ({
 .product__layout {
   display: grid;
   grid-template-columns: minmax(280px, 460px) 1fr;
-  gap: 3rem;
+  gap: 3.5rem;
   align-items: start;
 }
 
 .product__media {
   border-radius: 1.25rem;
   overflow: hidden;
-  background: #faf5f8;
+  background: var(--blush);
   border: 1px solid var(--line);
-}
-
-.product__category {
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.85rem;
-  font-weight: 700;
+  position: relative;
 }
 
 h1 {
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
-  margin: 0.25rem 0 0.75rem;
+  font-size: clamp(1.9rem, 3.4vw, 2.9rem);
+  margin: 0.4rem 0 0.6rem;
 }
 
 .product__price {
-  color: var(--primary);
-  font-size: 2rem;
-  font-weight: 800;
+  color: var(--gold);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 2.1rem;
+  font-weight: 700;
   margin-bottom: 1rem;
 }
 
@@ -135,13 +151,52 @@ h1 {
 }
 
 .product__presentation {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
-.product__actions {
+.product__buy {
   display: flex;
   gap: 1rem;
+  align-items: center;
   flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+.qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  background: #fff;
+}
+
+.qty button {
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--ink);
+  width: 24px;
+}
+
+.qty button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.qty button:hover:not(:disabled) {
+  color: var(--primary);
+}
+
+.qty span {
+  min-width: 1.5ch;
+  text-align: center;
+  font-weight: 700;
+}
+
+.product__ws {
   margin-bottom: 2rem;
 }
 
@@ -149,7 +204,6 @@ h1 {
   list-style: none;
   display: grid;
   gap: 0.5rem;
-  color: var(--ink);
   border-top: 1px solid var(--line);
   padding-top: 1.25rem;
 }
