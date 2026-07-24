@@ -7,7 +7,8 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm build
+# Heap ampliado: el build de Nuxt también supera el límite por defecto en VPS pequeños
+RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm build
 
 # ── Imagen final: solo el output de Nitro ──
 FROM node:22-alpine

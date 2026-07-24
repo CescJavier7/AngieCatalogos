@@ -10,7 +10,8 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm build
+# El build del dashboard necesita más heap que el que Node se autolimita en VPS pequeños
+RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm build
 
 EXPOSE 9000
 
