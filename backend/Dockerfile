@@ -4,7 +4,9 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate && apk add --no-cache python3 make g++
 
-COPY package.json pnpm-lock.yaml ./
+# El .npmrc trae los public-hoist-pattern de @medusajs/* — sin él, el
+# dashboard del admin no se resuelve al compilar
+COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
