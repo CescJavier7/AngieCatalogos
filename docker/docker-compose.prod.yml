@@ -79,6 +79,12 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
+      # Sincronización con Google Sheets (opcional)
+      GOOGLE_SA_KEY_FILE: ${GOOGLE_SA_KEY_FILE:-}
+      GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID:-}
+    volumes:
+      # JSON de la cuenta de servicio (colocarlo junto al .env.prod)
+      - ./google-sa.json:/app/google-sa.json:ro
     ports:
       - "127.0.0.1:9000:9000"
     networks: [angie, proxy-net]

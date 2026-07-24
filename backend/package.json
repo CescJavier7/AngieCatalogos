@@ -25,7 +25,8 @@
     "@medusajs/admin-sdk": "2.16.0",
     "@medusajs/cli": "2.16.0",
     "@medusajs/framework": "2.16.0",
-    "@medusajs/medusa": "2.16.0"
+    "@medusajs/medusa": "2.16.0",
+    "google-auth-library": "^10.9.1"
   },
   "devDependencies": {
     "@medusajs/test-utils": "2.16.0",

@@ -26,3 +26,6 @@ pnpm-debug.log*
 # Datos locales
 docker/volumes/
 uploads/
+
+# Credenciales de Google (nunca subir)
+google-sa.json
