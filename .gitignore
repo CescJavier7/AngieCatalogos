@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+.output/
+.nuxt/
+.medusa/
+build/
+
+# Entornos
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Datos locales
+docker/volumes/
+uploads/
