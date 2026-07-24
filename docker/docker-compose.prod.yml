@@ -103,7 +103,8 @@ services:
     environment:
       NUXT_PUBLIC_MEDUSA_URL: ${BACKEND_PUBLIC_URL}
       NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${MEDUSA_PUBLISHABLE_KEY}
-      NUXT_PUBLIC_GOOGLE_AUTH: ${NUXT_PUBLIC_GOOGLE_AUTH:-false}
+      # Nuxt deriva el nombre de la clave runtimeConfig: googleAuthEnabled
+      NUXT_PUBLIC_GOOGLE_AUTH_ENABLED: ${NUXT_PUBLIC_GOOGLE_AUTH:-false}
     ports:
       - "127.0.0.1:3300:3000"
     networks: [angie, proxy-net]

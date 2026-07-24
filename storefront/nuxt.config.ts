@@ -30,8 +30,11 @@ export default defineNuxtConfig({
     public: {
       medusaUrl: process.env.NUXT_PUBLIC_MEDUSA_URL || "http://localhost:9000",
       medusaPublishableKey: process.env.NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
-      // Muestra el botón "Continuar con Google" cuando el backend lo tiene activo
-      googleAuthEnabled: process.env.NUXT_PUBLIC_GOOGLE_AUTH === "true",
+      // Muestra el botón "Continuar con Google" cuando el backend lo tiene activo.
+      // En runtime se sobreescribe con NUXT_PUBLIC_GOOGLE_AUTH_ENABLED.
+      googleAuthEnabled:
+        process.env.NUXT_PUBLIC_GOOGLE_AUTH === "true" ||
+        process.env.NUXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true",
     },
   },
 })
