@@ -1,0 +1,40 @@
+name: angiecatalogos-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: angie-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: medusa
+      POSTGRES_PASSWORD: medusa_dev
+      POSTGRES_DB: angiecatalogos
+    ports:
+      # 5433 en el host: el 5432 está ocupado por otro proyecto
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medusa -d angiecatalogos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: angie-redis
+    restart: unless-stopped
+    ports:
+      # 6380 en el host: el 6379 está ocupado por otro proyecto
+      - "6380:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  redisdata:
