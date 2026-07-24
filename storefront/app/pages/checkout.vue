@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const medusa = useMedusa()
 const { cart, refresh, reset } = useCart()
+const { customer, fetchCustomer } = useCustomer()
 
 const PROVINCIAS = [
   "Azuay", "Bolívar", "Cañar", "Carchi", "Chimborazo", "Cotopaxi", "El Oro",
@@ -28,6 +29,22 @@ const loaded = ref(false)
 
 onMounted(async () => {
   await refresh()
+
+  // Si hay sesión, precargamos sus datos
+  await fetchCustomer()
+  if (customer.value) {
+    form.email = customer.value.email ?? ""
+    form.first_name = customer.value.first_name ?? ""
+    form.last_name = customer.value.last_name ?? ""
+    form.phone = customer.value.phone ?? ""
+    const addr = customer.value.addresses?.[0]
+    if (addr) {
+      form.address_1 = addr.address_1 ?? ""
+      form.city = addr.city ?? ""
+      form.province = addr.province || form.province
+    }
+  }
+
   if (cart.value?.items?.length) {
     const { shipping_options } = await medusa.store.fulfillment.listCartOptions({
       cart_id: cart.value.id,
@@ -104,6 +121,11 @@ useHead({ title: "Checkout | Angie Catálogos" })
   <div class="container checkout">
     <span class="eyebrow">Finalizar compra</span>
     <h1>Ya casi es tuyo</h1>
+
+    <p v-if="loaded && !customer && cart?.items?.length" class="checkout__hint">
+      💡 <NuxtLink to="/cuenta">Inicia sesión o crea tu cuenta</NuxtLink> para
+      guardar tus datos y seguir tu pedido paso a paso.
+    </p>
 
     <div v-if="loaded && !cart?.items?.length" class="checkout__empty">
       <p>Tu carrito está vacío.</p>
@@ -248,6 +270,19 @@ h1 {
   gap: 1rem;
   padding-block: 2rem;
   color: var(--muted);
+}
+
+.checkout__hint {
+  background: var(--blush);
+  border-radius: 0.75rem;
+  padding: 0.8rem 1.1rem;
+  margin-bottom: 1.5rem;
+  color: var(--muted);
+}
+
+.checkout__hint a {
+  color: var(--primary);
+  font-weight: 700;
 }
 
 .checkout__loading {

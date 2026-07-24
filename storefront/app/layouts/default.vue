@@ -23,18 +23,26 @@ onMounted(() => {
           <NuxtLink to="/#catalogo">Catálogo</NuxtLink>
         </nav>
 
-        <button
-          class="cart-btn"
-          aria-label="Abrir carrito"
-          @click="cartOpen = true"
-        >
+        <div class="header__actions">
+          <NuxtLink to="/cuenta" class="cart-btn" aria-label="Mi cuenta">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+            </svg>
+          </NuxtLink>
+          <button
+            class="cart-btn"
+            aria-label="Abrir carrito"
+            @click="cartOpen = true"
+          >
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
             <path d="M3 6h18" />
             <path d="M16 10a4 4 0 0 1-8 0" />
           </svg>
-          <span v-if="itemCount" class="cart-btn__badge">{{ itemCount }}</span>
-        </button>
+            <span v-if="itemCount" class="cart-btn__badge">{{ itemCount }}</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -149,6 +157,11 @@ main {
 
 .header__nav a:hover::after {
   transform: scaleX(1);
+}
+
+.header__actions {
+  display: flex;
+  gap: 0.6rem;
 }
 
 .cart-btn {

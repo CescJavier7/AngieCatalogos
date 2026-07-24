@@ -11,7 +11,7 @@ const { data: product } = await useAsyncData(
       handle: route.params.handle as string,
       region_id: region.value?.id,
       fields:
-        "id,title,handle,description,thumbnail,*images,*variants.calculated_price,*variants.options,*options,*categories",
+        "id,title,handle,description,thumbnail,*images,*variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,*variants.options,*options,*categories",
     })
     return products[0] ?? null
   },
@@ -27,11 +27,24 @@ const price = computed(() =>
   formatMoney(variant.value?.calculated_price?.calculated_amount)
 )
 
+/** Unidades disponibles (null = sin gestión de inventario) */
+const stock = computed<number | null>(() => {
+  const v = variant.value as any
+  if (!v || v.manage_inventory === false) return null
+  return v.inventory_quantity ?? null
+})
+const soldOut = computed(() => stock.value !== null && stock.value <= 0)
+const lowStock = computed(
+  () => stock.value !== null && stock.value > 0 && stock.value <= 5
+)
+
 const quantity = ref(1)
 const added = ref(false)
 
+const maxQty = computed(() => stock.value ?? 99)
+
 const add = async () => {
-  if (!variant.value) return
+  if (!variant.value || soldOut.value) return
   await addItem(variant.value.id, quantity.value)
   added.value = true
   setTimeout(() => (added.value = false), 1800)
@@ -64,6 +77,11 @@ useHead(() => ({
         </span>
         <h1>{{ product.title }}</h1>
         <p class="product__price">{{ price }}</p>
+
+        <p v-if="soldOut" class="stock stock--out">Agotado por el momento</p>
+        <p v-else-if="lowStock" class="stock stock--low">
+          ¡Solo quedan {{ stock }} unidades!
+        </p>
         <p class="product__desc">{{ product.description }}</p>
 
         <p v-if="variant?.title && variant.title !== 'Único'" class="product__presentation">
@@ -71,13 +89,13 @@ useHead(() => ({
         </p>
 
         <div class="product__buy">
-          <div class="qty" aria-label="Cantidad">
+          <div v-if="!soldOut" class="qty" aria-label="Cantidad">
             <button :disabled="quantity <= 1" @click="quantity--">−</button>
             <span>{{ quantity }}</span>
-            <button @click="quantity++">+</button>
+            <button :disabled="quantity >= maxQty" @click="quantity++">+</button>
           </div>
-          <button class="btn product__add" :disabled="busy" @click="add">
-            {{ added ? "Agregado al carrito ✓" : "Agregar al carrito" }}
+          <button class="btn product__add" :disabled="busy || soldOut" @click="add">
+            {{ soldOut ? "Agotado" : added ? "Agregado al carrito ✓" : "Agregar al carrito" }}
           </button>
         </div>
 
@@ -142,6 +160,25 @@ h1 {
   font-size: 2.1rem;
   font-weight: 700;
   margin-bottom: 1rem;
+}
+
+.stock {
+  display: inline-block;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.stock--out {
+  background: #f2ecf0;
+  color: var(--muted);
+}
+
+.stock--low {
+  background: rgba(185, 138, 47, 0.14);
+  color: var(--gold);
 }
 
 .product__desc {

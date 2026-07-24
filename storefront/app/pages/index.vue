@@ -9,7 +9,8 @@ const { data: products } = await useAsyncData(
     const { products } = await medusa.store.product.list({
       limit: 100,
       region_id: region.value?.id,
-      fields: "id,title,handle,thumbnail,*images,*variants.calculated_price,*categories",
+      fields:
+        "id,title,handle,thumbnail,*images,*variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,*categories",
     })
     return products
   },
@@ -29,11 +30,27 @@ const categories = computed(() => {
 const price = (p: any) =>
   formatMoney(p.variants?.[0]?.calculated_price?.calculated_amount)
 
+/** Unidades disponibles (null = no se gestiona inventario → siempre disponible) */
+const stockOf = (p: any): number | null => {
+  const v = p.variants?.[0]
+  if (!v || v.manage_inventory === false) return null
+  return v.inventory_quantity ?? null
+}
+
+const soldOut = (p: any) => {
+  const q = stockOf(p)
+  return q !== null && q <= 0
+}
+const lowStock = (p: any) => {
+  const q = stockOf(p)
+  return q !== null && q > 0 && q <= 5
+}
+
 const added = ref<string | null>(null)
 
 const quickAdd = async (p: any) => {
   const variantId = p.variants?.[0]?.id
-  if (!variantId) return
+  if (!variantId || soldOut(p)) return
   await addItem(variantId)
   added.value = p.id
   setTimeout(() => (added.value = null), 1600)
@@ -89,7 +106,12 @@ const quickAdd = async (p: any) => {
                   :src="p.thumbnail || p.images?.[0]?.url"
                   :alt="p.title"
                   loading="lazy"
+                  :class="{ 'img--soldout': soldOut(p) }"
                 />
+                <span v-if="soldOut(p)" class="badge badge--out">Agotado</span>
+                <span v-else-if="lowStock(p)" class="badge badge--low">
+                  ¡Últimas {{ stockOf(p) }}!
+                </span>
               </NuxtLink>
               <div class="card__body">
                 <NuxtLink :to="`/productos/${p.handle}`">
@@ -98,10 +120,10 @@ const quickAdd = async (p: any) => {
                 <p class="card__price">{{ price(p) }}</p>
                 <button
                   class="btn card__add"
-                  :disabled="busy"
+                  :disabled="busy || soldOut(p)"
                   @click="quickAdd(p)"
                 >
-                  {{ added === p.id ? "Agregado ✓" : "Agregar al carrito" }}
+                  {{ soldOut(p) ? "Agotado" : added === p.id ? "Agregado ✓" : "Agregar al carrito" }}
                 </button>
               </div>
             </article>
@@ -240,6 +262,33 @@ const quickAdd = async (p: any) => {
   aspect-ratio: 3 / 4;
   overflow: hidden;
   background: var(--blush);
+  position: relative;
+}
+
+.img--soldout {
+  filter: grayscale(0.9) opacity(0.6);
+}
+
+.badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.badge--out {
+  background: var(--ink);
+  color: #fff;
+}
+
+.badge--low {
+  background: var(--gold);
+  color: #fff;
 }
 
 .card__media img {
