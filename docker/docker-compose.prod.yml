@@ -1,9 +1,10 @@
-# Producción — VPS DigitalOcean (2 GB)
+# Producción — VPS DigitalOcean (2 GB) con Traefik existente
 #
-# Diseñado para convivir con otros contenedores del servidor:
-#   - Postgres y Redis NO publican puertos: solo la red interna "angie" los ve
-#   - Backend y tienda se atan a 127.0.0.1 → el Nginx del host hace de proxy
-#   - Todo lleva prefijo angie- (contenedores, volúmenes, red)
+# Convive con los demás contenedores del servidor:
+#   - Postgres y Redis viven SOLO en la red interna "angie" (sin puertos)
+#   - Backend y tienda se publican vía el Traefik del host (red proxy-net),
+#     igual que portfolio-frontend: entrypoint websecure + tls
+#   - Además quedan en 127.0.0.1 (9000/3300) para depurar desde el VPS
 #
 # Uso:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
@@ -73,7 +74,14 @@ services:
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
     ports:
       - "127.0.0.1:9000:9000"
-    networks: [angie]
+    networks: [angie, proxy-net]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: proxy-net
+      traefik.http.routers.angie-api.rule: Host(`tienda-api.cescjavier.dev`)
+      traefik.http.routers.angie-api.entrypoints: websecure
+      traefik.http.routers.angie-api.tls: "true"
+      traefik.http.services.angie-api.loadbalancer.server.port: "9000"
     deploy:
       resources:
         limits:
@@ -91,7 +99,14 @@ services:
       NUXT_PUBLIC_GOOGLE_AUTH: ${NUXT_PUBLIC_GOOGLE_AUTH:-false}
     ports:
       - "127.0.0.1:3300:3000"
-    networks: [angie]
+    networks: [angie, proxy-net]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: proxy-net
+      traefik.http.routers.angie-store.rule: Host(`tienda.cescjavier.dev`)
+      traefik.http.routers.angie-store.entrypoints: websecure
+      traefik.http.routers.angie-store.tls: "true"
+      traefik.http.services.angie-store.loadbalancer.server.port: "3000"
     deploy:
       resources:
         limits:
@@ -100,6 +115,8 @@ services:
 networks:
   angie:
     name: angie
+  proxy-net:
+    external: true
 
 volumes:
   angie_pgdata:

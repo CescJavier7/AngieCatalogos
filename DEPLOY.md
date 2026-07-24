@@ -43,28 +43,14 @@ nano .env.prod
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d storefront
 ```
 
-## 4. Nginx del host
-```bash
-cp nginx-angie.conf /etc/nginx/sites-available/angie
-ln -s /etc/nginx/sites-available/angie /etc/nginx/sites-enabled/
-nginx -t && systemctl reload nginx
-```
+## 4. Proxy: nada que hacer (Traefik)
+El Traefik del VPS descubre los contenedores por labels (ya incluidas en el
+compose): `tienda.cescjavier.dev` → storefront, `tienda-api.cescjavier.dev` →
+backend, entrypoint `websecure` + `tls`, red `proxy-net` — el mismo patrón que
+portfolio-frontend. HTTPS lo maneja la pareja Traefik + Cloudflare como en el
+resto del servidor.
 
-## 5. HTTPS con Cloudflare (el dominio está proxied ☁️)
-Cloudflare da el candado en el borde. En el panel: **SSL/TLS → Overview**:
-- Si el modo es **Flexible** → listo, nada más (Cloudflare→VPS va por el puerto 80).
-- Si es **Full / Full (strict)** → crear un **Origin Certificate**
-  (SSL/TLS → Origin Server → Create, para `*.cescjavier.dev`), guardarlo en
-  `/etc/ssl/cloudflare/` y añadir a cada server block:
-  ```
-  listen 443 ssl;
-  ssl_certificate     /etc/ssl/cloudflare/cert.pem;
-  ssl_certificate_key /etc/ssl/cloudflare/key.pem;
-  ```
-> ⚠️ El modo SSL es de TODO el dominio: no cambiarlo sin revisar los otros
-> sitios que ya corren en el VPS.
-
-## 6. Verificar
+## 5. Verificar
 - https://tienda-api.cescjavier.dev/health → `OK`
 - https://tienda-api.cescjavier.dev/app → panel admin
 - https://tienda.cescjavier.dev → tienda
