@@ -3,9 +3,12 @@ const order = useState<any>("last_order")
 
 useHead({ title: "¡Pedido confirmado! | Angie Catálogos" })
 
+const trackingCode = computed(
+  () => `AC-${String(order.value?.display_id ?? 0).padStart(4, "0")}`
+)
+
 const whatsappUrl = computed(() => {
-  const num = order.value?.display_id ?? ""
-  const msg = `Hola, acabo de realizar el pedido #${num} en la tienda. Quiero coordinar el pago y la entrega.`
+  const msg = `Hola, acabo de realizar el pedido ${trackingCode.value} en la tienda. Quiero coordinar el pago y la entrega.`
   return `https://wa.me/593980441321?text=${encodeURIComponent(msg)}`
 })
 </script>
@@ -14,7 +17,7 @@ const whatsappUrl = computed(() => {
   <div class="container confirm">
     <template v-if="order">
       <div class="confirm__badge">✓</div>
-      <span class="eyebrow">Pedido #{{ order.display_id }}</span>
+      <span class="eyebrow">Seguimiento: {{ trackingCode }}</span>
       <h1>¡Gracias por tu compra!</h1>
       <p class="confirm__lead">
         Recibimos tu pedido correctamente. Te contactaremos por WhatsApp para

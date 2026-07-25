@@ -66,12 +66,18 @@ const steps = (o: any) => {
   )
   const delivered = ["delivered", "partially_delivered"].includes(o.fulfillment_status)
   return [
-    { label: "Recibido", done: true },
-    { label: "Pago confirmado", done: paid },
-    { label: "Enviado", done: shipped },
-    { label: "Entregado", done: delivered },
+    { icon: "🧾", label: "Recibido", done: true },
+    { icon: "💳", label: "Pago confirmado", done: paid },
+    { icon: "🚚", label: "Enviado", done: shipped },
+    { icon: "🏠", label: "Entregado", done: delivered },
   ]
 }
+
+/** Código de seguimiento legible a partir del id global del pedido. */
+const trackingCode = (o: any) => `AC-${String(o.display_id).padStart(4, "0")}`
+
+/** Numeración personal: el pedido más antiguo del cliente es su Pedido 1. */
+const ordinal = (idx: number) => orders.value.length - idx
 
 const fecha = (iso: string) =>
   new Date(iso).toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" })
@@ -99,10 +105,11 @@ useHead({ title: "Mi cuenta | Angie Catálogos" })
           <NuxtLink to="/#catalogo" class="orders__link">Descubre el catálogo →</NuxtLink>
         </p>
 
-        <article v-for="o in orders" :key="o.id" class="order">
+        <article v-for="(o, idx) in orders" :key="o.id" class="order">
           <header class="order__head">
             <div>
-              <strong>Pedido #{{ o.display_id }}</strong>
+              <strong>Pedido {{ ordinal(idx) }}</strong>
+              <span class="order__code">Seguimiento: {{ trackingCode(o) }}</span>
               <span class="order__date">{{ fecha(o.created_at) }}</span>
             </div>
             <strong class="order__total">{{ formatMoney(o.total) }}</strong>
@@ -115,7 +122,7 @@ useHead({ title: "Mi cuenta | Angie Catálogos" })
               :class="{ 'timeline__step--done': s.done }"
               class="timeline__step"
             >
-              <span class="timeline__dot" />
+              <span class="timeline__dot">{{ s.icon }}</span>
               <span class="timeline__label">{{ s.label }}</span>
             </li>
           </ol>
@@ -252,6 +259,18 @@ h1 {
   margin-bottom: 1.25rem;
 }
 
+.order__code {
+  display: inline-block;
+  margin-left: 0.75rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
 .order__date {
   color: var(--muted);
   margin-left: 0.75rem;
@@ -281,7 +300,7 @@ h1 {
 .timeline__step:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: 8px;
+  top: 16px;
   left: 50%;
   width: 100%;
   height: 2px;
@@ -294,17 +313,22 @@ h1 {
 }
 
 .timeline__dot {
-  width: 18px;
-  height: 18px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: #fff;
   border: 2px solid var(--line);
   z-index: 1;
+  font-size: 1rem;
+  filter: grayscale(1) opacity(0.45);
 }
 
 .timeline__step--done .timeline__dot {
-  background: var(--primary);
   border-color: var(--primary);
+  background: var(--primary-soft);
+  filter: none;
 }
 
 .timeline__label {
