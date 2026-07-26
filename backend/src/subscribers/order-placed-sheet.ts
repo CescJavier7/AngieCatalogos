@@ -1,17 +1,15 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { pushStockToSheet } from "../lib/catalog-sync"
-import { sheetsEnabled } from "../lib/google-sheets"
+import { applySaleToInventory, toNum } from "../lib/catalog-sync"
 
 /**
- * Al confirmarse un pedido, baja el stock reflejado en la hoja de Google
- * para los SKUs vendidos.
+ * Al confirmarse un pedido: descuenta el stock real de forma definitiva
+ * (sin depender de que se marque "enviado") y lo espeja en la hoja de Google.
  */
-export default async function orderPlacedSheetHandler({
+export default async function orderPlacedInventoryHandler({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
-  if (!sheetsEnabled()) return
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -20,18 +18,28 @@ export default async function orderPlacedSheetHandler({
       data: [order],
     } = await query.graph({
       entity: "order",
-      fields: ["id", "items.variant_sku"],
+      fields: ["id", "items.id", "items.variant_sku", "items.raw_quantity"],
       filters: { id: data.id },
     })
-    const skus = (order?.items ?? [])
-      .map((i: any) => i.variant_sku)
-      .filter(Boolean)
-    if (skus.length) {
-      await pushStockToSheet(container, skus)
-      logger.info(`[sheet-sync] Stock actualizado en la hoja: ${skus.join(", ")}`)
+
+    const soldItems = (order?.items ?? [])
+      .filter((i: any) => i.variant_sku)
+      .map((i: any) => ({
+        lineItemId: i.id,
+        sku: i.variant_sku,
+        quantity: toNum(i.raw_quantity),
+      }))
+
+    if (soldItems.length) {
+      await applySaleToInventory(container, soldItems)
+      logger.info(
+        `[inventory] Venta aplicada: ${soldItems
+          .map((i) => `${i.sku} -${i.quantity}`)
+          .join(", ")}`
+      )
     }
   } catch (e: any) {
-    logger.error(`[sheet-sync] Error empujando stock: ${e.message}`)
+    logger.error(`[inventory] Error aplicando venta: ${e.message}`)
   }
 }
 

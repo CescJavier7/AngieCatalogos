@@ -1,9 +1,14 @@
 import { ExecArgs } from "@medusajs/framework/types"
-import { buildCatalogRows, rowsForSheet } from "../lib/catalog-sync"
+import {
+  buildCatalogRows,
+  rememberAllSyncedStock,
+  rowsForSheet,
+} from "../lib/catalog-sync"
 import { replaceAllRows, sheetsEnabled } from "../lib/google-sheets"
 
 /**
- * Exportación inicial: vuelca todo el catálogo a la hoja de Google.
+ * Exportación inicial: vuelca todo el catálogo a la hoja de Google
+ * y recuerda el stock sincronizado (para el guardián anti-clobber).
  * Uso: npx medusa exec ./src/scripts/sheet-export.ts
  */
 export default async function sheetExport({ container }: ExecArgs) {
@@ -14,5 +19,6 @@ export default async function sheetExport({ container }: ExecArgs) {
   }
   const rows = await buildCatalogRows(container)
   await replaceAllRows(rowsForSheet(rows))
+  await rememberAllSyncedStock(container)
   console.log(`✔ ${rows.length} productos exportados a la hoja.`)
 }
