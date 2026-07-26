@@ -17,12 +17,12 @@ export default async function orderCanceledInventoryHandler({
       data: [order],
     } = await query.graph({
       entity: "order",
-      fields: ["id", "items.variant_sku", "items.raw_quantity"],
+      fields: ["id", "items.*"],
       filters: { id: data.id },
     })
     const soldItems = (order?.items ?? [])
       .filter((i: any) => i.variant_sku)
-      .map((i: any) => ({ sku: i.variant_sku, quantity: toNum(i.raw_quantity) }))
+      .map((i: any) => ({ sku: i.variant_sku, quantity: toNum(i.quantity ?? i.raw_quantity) }))
     if (soldItems.length) {
       await restoreSaleToInventory(container, soldItems)
       logger.info(`[inventory] Stock restaurado por cancelación del pedido.`)

@@ -18,7 +18,7 @@ export default async function orderPlacedInventoryHandler({
       data: [order],
     } = await query.graph({
       entity: "order",
-      fields: ["id", "items.id", "items.variant_sku", "items.raw_quantity"],
+      fields: ["id", "items.*"],
       filters: { id: data.id },
     })
 
@@ -27,7 +27,7 @@ export default async function orderPlacedInventoryHandler({
       .map((i: any) => ({
         lineItemId: i.id,
         sku: i.variant_sku,
-        quantity: toNum(i.raw_quantity),
+        quantity: toNum(i.quantity ?? i.raw_quantity),
       }))
 
     if (soldItems.length) {
