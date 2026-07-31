@@ -43,18 +43,26 @@ const allBrands = computed(() => {
   return [...set].sort()
 })
 
-const AUDIENCE_CATS = ["Hombres", "Mujeres", "Niños"]
-const allCategories = computed(() => {
+/**
+ * Las categorías viven en dos grupos que se cruzan entre sí: a quién va dirigido
+ * y qué tipo de producto es. Cualquier categoría nueva que llegue desde la hoja
+ * (Cremas, Desodorantes, Ropa, Maquillaje…) cae sola en "tipo de producto".
+ */
+const AUDIENCE_CATS = ["Hombres", "Mujeres", "Niños", "Unisex"]
+
+const usedCategories = computed(() => {
   const set = new Set<string>()
   for (const p of products.value ?? [])
     for (const c of p.categories ?? []) set.add(c.name)
-  const list = [...set]
-  // Público primero, luego tipos de producto
-  return [
-    ...AUDIENCE_CATS.filter((c) => list.includes(c)),
-    ...list.filter((c) => !AUDIENCE_CATS.includes(c)).sort(),
-  ]
+  return set
 })
+
+const audienceCats = computed(() =>
+  AUDIENCE_CATS.filter((c) => usedCategories.value.has(c))
+)
+const typeCats = computed(() =>
+  [...usedCategories.value].filter((c) => !AUDIENCE_CATS.includes(c)).sort()
+)
 
 const priceBounds = computed(() => {
   const prices = (products.value ?? []).map(priceOf)
@@ -63,7 +71,8 @@ const priceBounds = computed(() => {
 })
 
 const selectedBrands = ref<string[]>([])
-const selectedCats = ref<string[]>([])
+const selectedAudience = ref<string[]>([])
+const selectedTypes = ref<string[]>([])
 const onlyPromos = ref(false)
 const priceMin = ref(0)
 const priceMax = ref(100)
@@ -85,28 +94,34 @@ watch(priceMax, (v) => { if (v < priceMin.value) priceMax.value = priceMin.value
 const activeFilters = computed(
   () =>
     selectedBrands.value.length +
-    selectedCats.value.length +
+    selectedAudience.value.length +
+    selectedTypes.value.length +
     (onlyPromos.value ? 1 : 0) +
     (priceMin.value > priceBounds.value.min || priceMax.value < priceBounds.value.max ? 1 : 0)
 )
 
 const clearFilters = () => {
   selectedBrands.value = []
-  selectedCats.value = []
+  selectedAudience.value = []
+  selectedTypes.value = []
   onlyPromos.value = false
   priceMin.value = priceBounds.value.min
   priceMax.value = priceBounds.value.max
 }
 
+/**
+ * Dentro de un grupo las opciones suman (Hombres o Niños); entre grupos se
+ * cruzan (Perfumes y además Hombres). Sin nada marcado, el grupo no filtra.
+ */
+const matchesGroup = (p: any, selected: string[]) =>
+  !selected.length || (p.categories ?? []).some((c: any) => selected.includes(c.name))
+
 const filtered = computed(() =>
   (products.value ?? []).filter((p) => {
     if (selectedBrands.value.length && !selectedBrands.value.includes(p.collection?.title ?? ""))
       return false
-    if (
-      selectedCats.value.length &&
-      !p.categories?.some((c: any) => selectedCats.value.includes(c.name))
-    )
-      return false
+    if (!matchesGroup(p, selectedAudience.value)) return false
+    if (!matchesGroup(p, selectedTypes.value)) return false
     if (onlyPromos.value && !isPromo(p)) return false
     const price = priceOf(p)
     return price >= priceMin.value && price <= priceMax.value
@@ -177,10 +192,18 @@ useHead({ title: "Catálogo | Angie Catálogos" })
           </label>
         </fieldset>
 
-        <fieldset class="filters__group">
-          <legend>Categoría</legend>
-          <label v-for="c in allCategories" :key="c" class="check">
-            <input v-model="selectedCats" type="checkbox" :value="c" />
+        <fieldset v-if="audienceCats.length" class="filters__group">
+          <legend>Para quién</legend>
+          <label v-for="c in audienceCats" :key="c" class="check">
+            <input v-model="selectedAudience" type="checkbox" :value="c" />
+            <span>{{ c }}</span>
+          </label>
+        </fieldset>
+
+        <fieldset v-if="typeCats.length" class="filters__group">
+          <legend>Tipo de producto</legend>
+          <label v-for="c in typeCats" :key="c" class="check">
+            <input v-model="selectedTypes" type="checkbox" :value="c" />
             <span>{{ c }}</span>
           </label>
         </fieldset>

@@ -3,13 +3,29 @@ const medusa = useMedusa()
 const { cart, refresh, reset } = useCart()
 const { customer, fetchCustomer } = useCustomer()
 
+/** Solo vendemos dentro de Ecuador. Galápagos se coordina por WhatsApp. */
 const PROVINCIAS = [
   "Azuay", "Bolívar", "Cañar", "Carchi", "Chimborazo", "Cotopaxi", "El Oro",
-  "Esmeraldas", "Galápagos", "Guayas", "Imbabura", "Loja", "Los Ríos",
+  "Esmeraldas", "Guayas", "Imbabura", "Loja", "Los Ríos",
   "Manabí", "Morona Santiago", "Napo", "Orellana", "Pastaza", "Pichincha",
   "Santa Elena", "Santo Domingo de los Tsáchilas", "Sucumbíos", "Tungurahua",
   "Zamora Chinchipe",
 ]
+
+const CANTONES_PICHINCHA = [
+  "Cayambe", "Mejía", "Pedro Moncayo", "Pedro Vicente Maldonado",
+  "Puerto Quito", "Quito", "Rumiñahui", "San Miguel de los Bancos",
+]
+
+/** El nombre de cada opción de envío en Medusa, mapeado a su zona. */
+const ZONA_POR_OPCION: Record<string, string> = {
+  "Envío gratis en Mejía": "mejia",
+  "Envío en Pichincha": "pichincha",
+  "Envío a provincias": "provincias",
+  "Retiro en Machachi": "retiro",
+}
+
+const BODEGA = "Bodega Angie Catálogos — Av. Fernández Salvador y L Vía Tesalia, Machachi"
 
 const form = reactive({
   email: "",
@@ -19,6 +35,9 @@ const form = reactive({
   address_1: "",
   city: "",
   province: "Pichincha",
+  canton: "Mejía",
+  retira_nombre: "",
+  retira_cedula: "",
 })
 
 const shippingOptions = ref<any[]>([])
@@ -46,7 +65,10 @@ onMounted(async () => {
     if (addr) {
       form.address_1 = addr.address_1 ?? ""
       form.city = addr.city ?? ""
-      form.province = addr.province || form.province
+      // Una dirección guardada de antes puede traer una provincia que ya no ofrecemos
+      if (addr.province && PROVINCIAS.includes(addr.province)) {
+        form.province = addr.province
+      }
     }
   }
 
@@ -60,10 +82,60 @@ onMounted(async () => {
   loaded.value = true
 })
 
-const shippingAmount = computed(() => {
-  const opt = shippingOptions.value.find((o) => o.id === selectedShipping.value)
-  return opt?.amount ?? 0
+/** Mejía no paga envío; el resto de Pichincha $3; cualquier otra provincia $6. */
+const zona = computed(() => {
+  if (form.province !== "Pichincha") return "provincias"
+  return form.canton === "Mejía" ? "mejia" : "pichincha"
 })
+
+/** Solo se ofrece la tarifa que corresponde a la dirección, más el retiro. */
+const opcionesVisibles = computed(() =>
+  shippingOptions.value.filter((o) => {
+    const z = ZONA_POR_OPCION[o.name]
+    return z === zona.value || z === "retiro"
+  })
+)
+
+const opcionElegida = computed(() =>
+  shippingOptions.value.find((o) => o.id === selectedShipping.value)
+)
+
+const esRetiro = computed(
+  () => ZONA_POR_OPCION[opcionElegida.value?.name ?? ""] === "retiro"
+)
+
+// Si cambia la provincia o el cantón, la opción elegida puede dejar de aplicar
+watch(
+  opcionesVisibles,
+  (opts) => {
+    if (!opts.some((o) => o.id === selectedShipping.value)) {
+      selectedShipping.value = opts[0]?.id ?? null
+    }
+  },
+  { immediate: true }
+)
+
+/** Dígito verificador de la cédula ecuatoriana (10 dígitos). */
+const cedulaValida = (valor: string) => {
+  if (!/^\d{10}$/.test(valor)) return false
+  const provincia = Number(valor.slice(0, 2))
+  if (provincia < 1 || (provincia > 24 && provincia !== 30)) return false
+  if (Number(valor[2]) > 5) return false
+  let suma = 0
+  for (let i = 0; i < 9; i++) {
+    let n = Number(valor[i]) * (i % 2 === 0 ? 2 : 1)
+    if (n > 9) n -= 9
+    suma += n
+  }
+  return (10 - (suma % 10)) % 10 === Number(valor[9])
+}
+
+const errorCedula = computed(() => {
+  if (!esRetiro.value || !form.retira_cedula) return null
+  return cedulaValida(form.retira_cedula) ? null : "Esa cédula no es válida."
+})
+
+const shippingAmount = computed(() => opcionElegida.value?.amount ?? 0)
 
 const total = computed(
   () => (cart.value?.item_subtotal ?? 0) + shippingAmount.value
@@ -72,18 +144,36 @@ const total = computed(
 const placeOrder = async () => {
   if (!cart.value) return
   error.value = null
+
+  if (esRetiro.value && !cedulaValida(form.retira_cedula)) {
+    error.value = "Revisa la cédula de quien va a retirar el pedido."
+    return
+  }
+
   submitting.value = true
   try {
     // 1. Datos del cliente y dirección
     await medusa.store.cart.update(cart.value.id, {
       email: form.email,
+      // Quien retira en Machachi queda registrado en el pedido
+      metadata: esRetiro.value
+        ? {
+            retiro_en_bodega: "si",
+            retira_nombre: form.retira_nombre.trim(),
+            retira_cedula: form.retira_cedula.trim(),
+          }
+        : {},
       shipping_address: {
         first_name: form.first_name,
         last_name: form.last_name,
         phone: form.phone,
-        address_1: form.address_1,
-        city: form.city,
-        province: form.province,
+        address_1: esRetiro.value ? BODEGA : form.address_1,
+        city: esRetiro.value
+          ? "Machachi"
+          : form.province === "Pichincha"
+            ? `${form.city} (${form.canton})`
+            : form.city,
+        province: esRetiro.value ? "Pichincha" : form.province,
         country_code: "ec",
       },
     })
@@ -165,7 +255,33 @@ useHead({ title: "Checkout | Angie Catálogos" })
 
         <h2>2 · Entrega</h2>
         <div class="fields">
-          <label>
+          <div class="fields__row">
+            <label>
+              Provincia
+              <select v-model="form.province">
+                <option v-for="p in PROVINCIAS" :key="p" :value="p">{{ p }}</option>
+              </select>
+            </label>
+            <label v-if="form.province === 'Pichincha'">
+              Cantón
+              <select v-model="form.canton">
+                <option v-for="c in CANTONES_PICHINCHA" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </label>
+            <label v-else>
+              Ciudad
+              <input v-model="form.city" :required="!esRetiro" autocomplete="address-level2" />
+            </label>
+          </div>
+
+          <div v-if="form.province === 'Pichincha'" class="fields__row">
+            <label>
+              Ciudad o parroquia
+              <input v-model="form.city" :required="!esRetiro" autocomplete="address-level2" />
+            </label>
+          </div>
+
+          <label v-if="!esRetiro">
             Dirección
             <input
               v-model="form.address_1"
@@ -174,23 +290,19 @@ useHead({ title: "Checkout | Angie Catálogos" })
               autocomplete="street-address"
             />
           </label>
-          <div class="fields__row">
-            <label>
-              Ciudad
-              <input v-model="form.city" required autocomplete="address-level2" />
-            </label>
-            <label>
-              Provincia
-              <select v-model="form.province">
-                <option v-for="p in PROVINCIAS" :key="p" :value="p">{{ p }}</option>
-              </select>
-            </label>
-          </div>
+
+          <p class="galapagos-note">
+            ¿Estás en Galápagos? Todavía no llegamos con envío regular, pero
+            <a href="https://wa.me/593980441321" target="_blank" rel="noopener">
+              escríbenos por WhatsApp
+            </a>
+            y lo coordinamos contigo.
+          </p>
 
           <fieldset class="shipping">
             <legend>Método de entrega</legend>
             <label
-              v-for="opt in shippingOptions"
+              v-for="opt in opcionesVisibles"
               :key="opt.id"
               class="shipping__option"
               :class="{ 'shipping__option--active': selectedShipping === opt.id }"
@@ -206,6 +318,35 @@ useHead({ title: "Checkout | Angie Catálogos" })
                 {{ opt.amount ? formatMoney(opt.amount) : "Gratis" }}
               </span>
             </label>
+          </fieldset>
+
+          <!-- Quien retira debe identificarse al llegar a la bodega -->
+          <fieldset v-if="esRetiro" class="pickup">
+            <legend>¿Quién retira el pedido?</legend>
+            <p class="pickup__note">
+              Presenta la cédula al retirar en {{ BODEGA.split('—')[1]?.trim() }}.
+            </p>
+            <div class="fields">
+              <label>
+                Nombre completo de quien retira
+                <input
+                  v-model="form.retira_nombre"
+                  required
+                  placeholder="Tal como aparece en la cédula"
+                />
+              </label>
+              <label>
+                Cédula
+                <input
+                  v-model="form.retira_cedula"
+                  required
+                  inputmode="numeric"
+                  maxlength="10"
+                  placeholder="10 dígitos"
+                />
+                <small v-if="errorCedula" class="pickup__error">{{ errorCedula }}</small>
+              </label>
+            </div>
           </fieldset>
         </div>
 
@@ -376,6 +517,44 @@ h1 {
   color: var(--gold);
 }
 
+.galapagos-note {
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--blush);
+  border-radius: 0.75rem;
+  padding: 0.7rem 1rem;
+}
+
+.galapagos-note a {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.pickup {
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  padding: 1.1rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.pickup legend {
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding-inline: 0.4rem;
+}
+
+.pickup__note {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.pickup__error {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
 .payment-note {
   color: var(--muted);
   background: var(--blush);
@@ -465,6 +644,12 @@ h1 {
 
   .summary {
     position: static;
+  }
+}
+
+@media (max-width: 560px) {
+  .fields__row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

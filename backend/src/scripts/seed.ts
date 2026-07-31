@@ -26,6 +26,7 @@ import {
   updateStoresWorkflow,
 } from "@medusajs/medusa/core-flows";
 import { ApiKey } from "../../.medusa/types/query-entry-points";
+import { ZONAS } from "../lib/shipping-zones";
 
 // URL pública del backend: las imágenes de producto se sirven desde /static
 const BACKEND_URL = process.env.BACKEND_PUBLIC_URL || "http://localhost:9000";
@@ -254,77 +255,42 @@ export default async function seedAngieCatalogos({ container }: ExecArgs) {
     },
   });
 
+  // Tarifas por cercanía a la bodega — ver src/lib/shipping-zones.ts
   await createShippingOptionsWorkflow(container).run({
-    input: [
-      {
-        name: "Envío Nacional",
-        price_type: "flat",
-        provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0].id,
-        shipping_profile_id: shippingProfile.id,
-        type: {
-          label: "Estándar",
-          description: "Entrega en 1 a 3 días hábiles en todo el Ecuador.",
-          code: "standard",
-        },
-        prices: [
-          {
-            currency_code: "usd",
-            amount: 3.5,
-          },
-          {
-            region_id: region.id,
-            amount: 3.5,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
+    input: ZONAS.map((z) => ({
+      name: z.name,
+      price_type: "flat" as const,
+      provider_id: "manual_manual",
+      service_zone_id: fulfillmentSet.service_zones[0].id,
+      shipping_profile_id: shippingProfile!.id,
+      type: {
+        label: z.label,
+        description: z.description,
+        code: z.code,
       },
-      {
-        name: "Retiro en Machachi",
-        price_type: "flat",
-        provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0].id,
-        shipping_profile_id: shippingProfile.id,
-        type: {
-          label: "Retiro",
-          description: "Retira tu pedido sin costo en Machachi.",
-          code: "pickup",
+      prices: [
+        {
+          currency_code: "usd",
+          amount: z.amount,
         },
-        prices: [
-          {
-            currency_code: "usd",
-            amount: 0,
-          },
-          {
-            region_id: region.id,
-            amount: 0,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
-      },
-    ],
+        {
+          region_id: region.id,
+          amount: z.amount,
+        },
+      ],
+      rules: [
+        {
+          attribute: "enabled_in_store",
+          value: "true",
+          operator: "eq" as const,
+        },
+        {
+          attribute: "is_return",
+          value: "false",
+          operator: "eq" as const,
+        },
+      ],
+    })),
   });
 
   await linkSalesChannelsToStockLocationWorkflow(container).run({

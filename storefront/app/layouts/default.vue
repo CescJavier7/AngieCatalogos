@@ -9,7 +9,7 @@ onMounted(() => {
 <template>
   <div class="site">
     <div class="topbar">
-      Envíos a todo el Ecuador · 1 a 3 días hábiles · Retiro gratis en Machachi
+      Envío gratis en Mejía · Pichincha $3 · Resto del país $6 · Retiro gratis en Machachi
     </div>
 
     <header class="header">
@@ -21,10 +21,17 @@ onMounted(() => {
         <nav class="header__nav">
           <NuxtLink to="/">Inicio</NuxtLink>
           <NuxtLink to="/catalogo">Catálogo</NuxtLink>
-          <NuxtLink to="/catalogo" class="header__promo">Promociones</NuxtLink>
         </nav>
 
         <div class="header__actions">
+          <!-- Atajo al catálogo cuando el menú de texto no cabe (tablets y móviles) -->
+          <NuxtLink to="/catalogo" class="shop-btn">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9h18l-1.5 11a2 2 0 0 1-2 1.8H6.5a2 2 0 0 1-2-1.8Z" />
+              <path d="M8 9V6.5a4 4 0 0 1 8 0V9" />
+            </svg>
+            <span>Tienda</span>
+          </NuxtLink>
           <NuxtLink to="/cuenta" class="cart-btn" aria-label="Mi cuenta">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="8" r="4" />
@@ -160,13 +167,31 @@ main {
   transform: scaleX(1);
 }
 
-.header__promo {
-  color: var(--primary);
-}
-
 .header__actions {
   display: flex;
+  align-items: center;
   gap: 0.6rem;
+}
+
+/* Solo aparece cuando se oculta el menú de texto */
+.shop-btn {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  height: 44px;
+  padding-inline: 0.9rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.shop-btn:hover {
+  filter: brightness(1.08);
 }
 
 .cart-btn {
@@ -268,9 +293,24 @@ small {
   opacity: 0.6;
 }
 
-@media (max-width: 620px) {
+/* Tablets, iPads y móviles: el menú de texto estorba, manda el botón de Tienda */
+@media (max-width: 900px) {
   .header__nav {
     display: none;
+  }
+
+  .shop-btn {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 380px) {
+  .shop-btn span {
+    display: none;
+  }
+
+  .shop-btn {
+    padding-inline: 0.75rem;
   }
 }
 </style>
