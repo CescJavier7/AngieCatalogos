@@ -145,12 +145,14 @@ useJsonLd({
         </a>
 
         <ul class="product__perks">
-          <li>🚚 Envío a todo el Ecuador (1 a 3 días hábiles)</li>
+          <li>🚚 Envío gratis en Mejía · $3 en Pichincha · $6 al resto del país</li>
           <li>🏬 Retiro gratis en Machachi</li>
           <li>✅ Productos originales de catálogo</li>
         </ul>
       </div>
     </div>
+
+    <ProductosSugeridos :producto="product" />
   </div>
 </template>
 
