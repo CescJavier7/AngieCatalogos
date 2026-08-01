@@ -360,6 +360,10 @@ useJsonLd({
 
 .hero__media {
   position: relative;
+  /* La foto no debe crecer sin límite en monitores anchos */
+  max-width: 520px;
+  width: 100%;
+  justify-self: end;
 }
 
 .hero__media::before {
@@ -573,23 +577,77 @@ useJsonLd({
 }
 
 /* ── Responsive ── */
+
+/* Portátiles y tablets en horizontal: menos aire, la foto no manda */
+@media (max-width: 1024px) {
+  .hero__inner {
+    gap: 2rem;
+    padding-block: 3.25rem;
+  }
+
+  .hero__media {
+    max-width: 420px;
+  }
+}
+
+/* Tablets en vertical y móviles: una sola columna, el titular primero */
 @media (max-width: 820px) {
   .hero__inner {
     grid-template-columns: 1fr;
     padding-block: 2.5rem;
-    gap: 2rem;
+    gap: 2.25rem;
+    text-align: center;
   }
 
+  .hero__text > p,
   .hero__media {
-    order: -1;
+    margin-inline: auto;
+  }
+
+  .hero__actions,
+  .hero__trust {
+    justify-content: center;
   }
 
   .hero__trust {
-    gap: 1.5rem;
+    gap: 1.5rem 2rem;
   }
 
   .cta__card {
     padding: 1.75rem 1.5rem;
+  }
+}
+
+/* Móviles: botones a lo ancho y datos de confianza en tres columnas */
+@media (max-width: 520px) {
+  .hero__inner {
+    padding-block: 2rem;
+  }
+
+  .hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .hero__actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero__trust {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem 0.5rem;
+    text-align: center;
+  }
+
+  .hero__trust strong {
+    font-size: 1.2rem;
+  }
+
+  .hero__trust span {
+    font-size: 0.75rem;
   }
 }
 </style>

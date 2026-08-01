@@ -55,6 +55,9 @@ h3,
 
 img {
   max-width: 100%;
+  /* Imprescindible junto a max-width: sin esto, un width/height en el HTML
+     deja la altura fija y la imagen se estira al encogerse el ancho. */
+  height: auto;
   display: block;
 }
 
