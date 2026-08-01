@@ -88,6 +88,11 @@ onMounted(() => {
           <span>·</span>
           <a href="https://wa.me/593980441321" target="_blank" rel="noopener">WhatsApp</a>
         </div>
+        <nav class="footer__legal">
+          <NuxtLink to="/terminos">Términos y Condiciones</NuxtLink>
+          <span>·</span>
+          <NuxtLink to="/privacidad">Política de Privacidad</NuxtLink>
+        </nav>
         <small>© {{ new Date().getFullYear() }} Angie Catálogos</small>
       </div>
     </footer>
@@ -288,6 +293,23 @@ main {
 
 .footer__social a:hover {
   color: var(--gold-light);
+}
+
+.footer__legal {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 0.82rem;
+  opacity: 0.75;
+}
+
+.footer__legal a:hover {
+  color: var(--gold-light);
+}
+
+.footer__legal span {
+  color: var(--gold);
 }
 
 small {

@@ -14,6 +14,30 @@ const form = reactive({
 const error = ref<string | null>(null)
 const orders = ref<any[]>([])
 const ordersLoaded = ref(false)
+const aceptaMarketing = ref(false)
+
+const { marketing } = useReferrals()
+
+/**
+ * El permiso de publicidad se guarda tras crear la cuenta. Con Google hay un
+ * salto a otro dominio de por medio, así que la elección viaja en una cookie
+ * corta que recoge /cuenta/callback.
+ */
+const guardarMarketing = async () => {
+  if (!aceptaMarketing.value) return
+  try {
+    await marketing(true)
+  } catch {
+    /* que no bloquee el registro */
+  }
+}
+
+const entrarConGoogle = () => {
+  useCookie("angie_marketing_optin", { maxAge: 600 }).value = aceptaMarketing.value
+    ? "1"
+    : "0"
+  loginWithGoogle(typeof route.query.next === "string" ? route.query.next : undefined)
+}
 
 const loadOrders = async () => {
   if (!customer.value) return
@@ -35,6 +59,7 @@ const submit = async () => {
       await login(form.email, form.password)
     } else {
       await register({ ...form })
+      await guardarMarketing()
     }
     // Si venía del checkout, lo devolvemos a terminar su compra
     if (typeof route.query.next === "string") {
@@ -158,11 +183,16 @@ useSeo({ title: "Mi cuenta", description: "Tus pedidos y datos en Angie Catálog
           v-if="config.public.googleAuthEnabled"
           class="google-btn"
           type="button"
-          @click="loginWithGoogle(typeof route.query.next === 'string' ? route.query.next : undefined)"
+          @click="entrarConGoogle"
         >
           <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.2 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.2 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 42.6 44 38 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
           Continuar con Google
         </button>
+        <p v-if="config.public.googleAuthEnabled" class="auth__legal auth__legal--google">
+          Al continuar aceptas los
+          <NuxtLink to="/terminos">Términos y Condiciones</NuxtLink> y la
+          <NuxtLink to="/privacidad">Política de Privacidad</NuxtLink>.
+        </p>
         <div v-if="config.public.googleAuthEnabled" class="auth__divider"><span>o con tu correo</span></div>
 
         <form class="auth__form" @submit.prevent="submit">
@@ -198,12 +228,29 @@ useSeo({ title: "Mi cuenta", description: "Tus pedidos y datos en Angie Catálog
             />
           </label>
 
+          <!-- Consentimiento de publicidad: opcional, separado y sin marcar
+               por defecto, como exige la LOPDP -->
+          <label v-if="mode === 'register'" class="auth__opt">
+            <input v-model="aceptaMarketing" type="checkbox" />
+            <span>
+              Quiero recibir promociones y novedades por correo.
+              <small>Opcional. Puedes darte de baja cuando quieras.</small>
+            </span>
+          </label>
+
           <p v-if="error" class="auth__error">{{ error }}</p>
 
           <button class="btn" type="submit" :disabled="loading">
             {{ loading ? "Un momento…" : mode === "login" ? "Entrar" : "Crear cuenta" }}
           </button>
         </form>
+
+        <p v-if="mode === 'register'" class="auth__legal">
+          Al crear tu cuenta aceptas los
+          <NuxtLink to="/terminos">Términos y Condiciones</NuxtLink> y la
+          <NuxtLink to="/privacidad">Política de Privacidad</NuxtLink>, que
+          explica cómo usamos tus datos.
+        </p>
 
         <p class="auth__switch">
           <template v-if="mode === 'login'">
@@ -237,6 +284,46 @@ useSeo({ title: "Mi cuenta", description: "Tus pedidos y datos en Angie Catálog
 h1 {
   font-size: clamp(1.9rem, 4vw, 2.7rem);
   margin-top: 0.3rem;
+}
+
+.auth__opt {
+  display: flex !important;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.auth__opt input {
+  width: auto;
+  margin-top: 0.2rem;
+  accent-color: var(--primary);
+}
+
+.auth__opt small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.auth__legal {
+  margin-top: 0.9rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.auth__legal--google {
+  margin: 0.6rem 0 0;
+}
+
+.auth__legal a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
 }
 
 .invita {

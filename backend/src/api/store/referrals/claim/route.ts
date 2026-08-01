@@ -2,6 +2,7 @@ import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/
 import { Modules } from "@medusajs/framework/utils"
 import { REFERRALS_MODULE } from "../../../../modules/referrals"
 import type ReferralsModuleService from "../../../../modules/referrals/service"
+import { MINIMO_BONO } from "../../../../modules/referrals/rules"
 
 type Body = { code?: string }
 
@@ -42,6 +43,9 @@ export async function POST(
   res.json({
     ok: true,
     bono: resultado.bono,
-    message: `¡Listo! Tienes $${resultado.bono} de descuento en tu primera compra.`,
+    minimo: MINIMO_BONO,
+    message:
+      `¡Listo! Tienes $${resultado.bono} de descuento en tu primera compra ` +
+      `de $${MINIMO_BONO} o más.`,
   })
 }

@@ -13,6 +13,12 @@ export const TOPE_SALDO = 20
 /** Descuento de bienvenida para quien se registra con un código. */
 export const BONO_INVITADO = 2
 
+/**
+ * Compra mínima para usar el bono de bienvenida. Sin este mínimo, dos dólares
+ * sobre un desodorante de tres se comen el margen entero.
+ */
+export const MINIMO_BONO = 20
+
 /** Saldo total al que llega el anfitrión según amigos que calificaron. */
 export const ESCALERA: { amigos: number; saldo: number }[] = [
   { amigos: 1, saldo: 3 },

@@ -6,6 +6,7 @@
 const route = useRoute()
 const medusa = useMedusa()
 const { fetchCustomer, claimCart } = useCustomer()
+const { marketing } = useReferrals()
 const status = ref<"working" | "error">("working")
 
 const decodeJwt = (token: string) => {
@@ -35,6 +36,18 @@ onMounted(async () => {
 
     await fetchCustomer()
     await claimCart()
+
+    // Recoge el permiso de publicidad que se eligió antes de saltar a Google
+    const optIn = useCookie("angie_marketing_optin")
+    if (optIn.value === "1") {
+      try {
+        await marketing(true)
+      } catch {
+        /* que no bloquee el acceso */
+      }
+    }
+    optIn.value = null
+
     const nextCookie = useCookie("angie_next")
     const next = nextCookie.value || "/cuenta"
     nextCookie.value = null

@@ -9,6 +9,8 @@ export default defineEventHandler(async (event) => {
   const urls: { loc: string; priority: string; changefreq: string }[] = [
     { loc: cfg.siteUrl, priority: "1.0", changefreq: "weekly" },
     { loc: `${cfg.siteUrl}/catalogo`, priority: "0.9", changefreq: "daily" },
+    { loc: `${cfg.siteUrl}/terminos`, priority: "0.3", changefreq: "yearly" },
+    { loc: `${cfg.siteUrl}/privacidad`, priority: "0.3", changefreq: "yearly" },
   ]
 
   try {

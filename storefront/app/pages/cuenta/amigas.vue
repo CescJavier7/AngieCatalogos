@@ -38,7 +38,8 @@ const enlace = computed(() =>
 const mensajeWhatsApp = computed(() =>
   encodeURIComponent(
     `¡Hola! Te comparto mi código de Angie Catálogos: ${datos.value?.code}. ` +
-      `Regístrate con él y tienes $2 de descuento en tu primera compra 💄\n${enlace.value}`
+      `Regístrate con él y tienes $${datos.value?.bono_invitado} de descuento en tu primera ` +
+      `compra de $${datos.value?.minimo_bono} o más 💄\n${enlace.value}`
   )
 )
 
@@ -143,7 +144,9 @@ useSeo({
           Compartir por WhatsApp
         </a>
         <p class="amigas__hint">
-          Quien se registre con tu código recibe <strong>$2</strong> en su primera compra.
+          Quien se registre con tu código recibe
+          <strong>{{ formatMoney(datos.bono_invitado) }}</strong> en su primera compra de
+          {{ formatMoney(datos.minimo_bono) }} o más.
         </p>
       </section>
 

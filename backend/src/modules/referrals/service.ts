@@ -3,6 +3,7 @@ import ReferralAccount from "./models/referral-account"
 import Referral from "./models/referral"
 import {
   BONO_INVITADO,
+  MINIMO_BONO,
   TOPE_MENSUAL,
   TOPE_SALDO,
   generarCodigo,
@@ -193,6 +194,8 @@ class ReferralsModuleService extends MedusaService({
       qualified_count: cuenta.qualified_count,
       accepts_marketing: cuenta.accepts_marketing,
       tope: TOPE_SALDO,
+      bono_invitado: BONO_INVITADO,
+      minimo_bono: MINIMO_BONO,
       progreso: progreso(cuenta.qualified_count),
       amigos: amigos.map((a) => ({
         status: a.status,
