@@ -44,12 +44,9 @@ const allBrands = computed(() => {
 })
 
 /**
- * Las categorías viven en dos grupos que se cruzan entre sí: a quién va dirigido
- * y qué tipo de producto es. Cualquier categoría nueva que llegue desde la hoja
- * (Cremas, Desodorantes, Ropa, Maquillaje…) cae sola en "tipo de producto".
+ * Los dos grupos de categorías —público y tipo de producto— viven en
+ * utils/catalogo.ts, compartidos con las sugerencias de la ficha.
  */
-const AUDIENCE_CATS = ["Hombres", "Mujeres", "Niños", "Unisex"]
-
 const usedCategories = computed(() => {
   const set = new Set<string>()
   for (const p of products.value ?? [])

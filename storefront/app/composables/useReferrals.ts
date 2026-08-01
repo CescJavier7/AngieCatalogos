@@ -1,16 +1,15 @@
-/** Plan "Invita y gana": código propio, progreso y canje de códigos ajenos. */
+/**
+ * Plan "Invita y gana": código propio, progreso y canje de códigos ajenos.
+ *
+ * Va por `medusa.client.fetch` a propósito: el SDK guarda el token de sesión
+ * en localStorage, no en cookies, así que un $fetch normal saldría sin
+ * autenticar y el backend devolvería 401.
+ */
 export const useReferrals = () => {
-  const { public: cfg } = useRuntimeConfig()
-
-  const pedir = <T>(ruta: string, init?: any) =>
-    $fetch<T>(`${cfg.medusaUrl}/store/referrals${ruta}`, {
-      credentials: "include",
-      headers: { "x-publishable-api-key": cfg.medusaPublishableKey },
-      ...init,
-    })
+  const medusa = useMedusa()
 
   const resumen = () =>
-    pedir<{
+    medusa.client.fetch<{
       code: string
       balance: number
       redeemed: number
@@ -24,19 +23,19 @@ export const useReferrals = () => {
         premio: number
       }
       amigos: { status: string; reward: number; created_at: string }[]
-    }>("/me")
+    }>("/store/referrals/me")
 
   const canjear = (code: string) =>
-    pedir<{ ok: boolean; bono: number; message: string }>("/claim", {
-      method: "POST",
-      body: { code },
-    })
+    medusa.client.fetch<{ ok: boolean; bono: number; message: string }>(
+      "/store/referrals/claim",
+      { method: "POST", body: { code } }
+    )
 
   const marketing = (accepts: boolean) =>
-    pedir<{ accepts_marketing: boolean }>("/marketing", {
-      method: "POST",
-      body: { accepts },
-    })
+    medusa.client.fetch<{ accepts_marketing: boolean }>(
+      "/store/referrals/marketing",
+      { method: "POST", body: { accepts } }
+    )
 
   return { resumen, canjear, marketing }
 }

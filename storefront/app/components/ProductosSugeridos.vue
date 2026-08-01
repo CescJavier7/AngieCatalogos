@@ -36,33 +36,64 @@ const agotado = (p: any) => {
   return (v.inventory_quantity ?? 0) <= 0
 }
 
+const TOTAL = 8
+/** Cuántos huecos se reservan para otras familias de producto. */
+const HUECOS_VARIEDAD = 3
+
 const sugeridos = computed(() => {
   const actual = props.producto
   if (!actual) return []
 
-  const catsActuales = new Set((actual.categories ?? []).map((c: any) => c.name))
+  const publico = publicoDe(actual)
+  const tipos = new Set(tipoDe(actual))
   const marcaActual = actual.collection?.title
   const precioActual = precioDe(actual)
 
-  return (candidatos.value ?? [])
-    .filter((p: any) => p.id !== actual.id && !agotado(p))
-    .map((p: any) => {
-      let puntos = 0
-      // Compartir categorías es la señal más fuerte: mismo tipo y mismo público
-      for (const c of p.categories ?? []) if (catsActuales.has(c.name)) puntos += 2
-      if (marcaActual && p.collection?.title === marcaActual) puntos += 3
-      // Un precio parecido sugiere que entra en el mismo presupuesto
-      const precio = precioDe(p)
-      if (precioActual > 0 && Math.abs(precio - precioActual) <= precioActual * 0.4) {
-        puntos += 1
-      }
-      if ((p.tags ?? []).some((t: any) => t.value === "promocion")) puntos += 0.5
-      return { p, puntos }
-    })
-    .filter((x) => x.puntos > 0)
+  const puntuar = (p: any) => {
+    let puntos = 1
+    for (const t of tipoDe(p)) if (tipos.has(t)) puntos += 2
+    if (marcaActual && p.collection?.title === marcaActual) puntos += 2
+    // Un precio parecido sugiere que entra en el mismo presupuesto
+    const precio = precioDe(p)
+    if (precioActual > 0 && Math.abs(precio - precioActual) <= precioActual * 0.4) {
+      puntos += 1
+    }
+    if ((p.tags ?? []).some((t: any) => t.value === "promocion")) puntos += 0.5
+    return puntos
+  }
+
+  // El público es filtro, no puntuación: en una ficha de hombre nunca
+  // aparecerá algo de mujer, aunque comparta marca y precio.
+  const aptos = (candidatos.value ?? [])
+    .filter((p: any) => p.id !== actual.id && !agotado(p) && mismoPublico(p, publico))
+    .map((p: any) => ({ p, puntos: puntuar(p), mismoTipo: tipoDe(p).some((t) => tipos.has(t)) }))
     .sort((a, b) => b.puntos - a.puntos || precioDe(a.p) - precioDe(b.p))
-    .slice(0, 8)
-    .map((x) => x.p)
+
+  // Se reservan huecos para otras familias —desodorantes, cremas— para que
+  // la ficha no acabe mostrando ocho perfumes casi idénticos.
+  const mismos = aptos.filter((x) => x.mismoTipo)
+  const otros = aptos.filter((x) => !x.mismoTipo)
+  const elegidos = [
+    ...mismos.slice(0, TOTAL - Math.min(HUECOS_VARIEDAD, otros.length)),
+    ...otros.slice(0, HUECOS_VARIEDAD),
+  ]
+
+  // Si faltaron candidatos en algún grupo, se completa con lo que quede
+  for (const x of aptos) {
+    if (elegidos.length >= TOTAL) break
+    if (!elegidos.includes(x)) elegidos.push(x)
+  }
+
+  return elegidos.slice(0, TOTAL).map((x) => x.p)
+})
+
+/** El título dice a quién van dirigidas, que es lo que las agrupa. */
+const titulo = computed(() => {
+  const publico = publicoDe(props.producto)
+  if (publico.includes("Hombres")) return "También para él"
+  if (publico.includes("Mujeres")) return "También para ella"
+  if (publico.includes("Niños")) return "También para los peques"
+  return "Combina con este"
 })
 
 const agregado = ref<string | null>(null)
@@ -78,7 +109,7 @@ const agregar = async (p: any) => {
 <template>
   <section v-if="sugeridos.length" class="sugeridos">
     <div class="sugeridos__head">
-      <h2>Combina con este</h2>
+      <h2>{{ titulo }}</h2>
       <p>Añádelos sin salir de aquí y te llegan en el mismo envío.</p>
     </div>
 

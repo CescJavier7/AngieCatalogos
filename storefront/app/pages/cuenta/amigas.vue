@@ -4,15 +4,19 @@ const { resumen, canjear, marketing } = useReferrals()
 
 const datos = ref<any>(null)
 const cargando = ref(true)
+const errorCarga = ref<string | null>(null)
 const copiado = ref(false)
 const codigoAmiga = ref("")
 const mensajeCanje = ref<{ ok: boolean; texto: string } | null>(null)
 
 const cargar = async () => {
+  errorCarga.value = null
   try {
     datos.value = await resumen()
-  } catch {
+  } catch (e: any) {
     datos.value = null
+    errorCarga.value =
+      e?.message ?? "No pudimos cargar tu plan. Vuelve a intentarlo en un momento."
   } finally {
     cargando.value = false
   }
@@ -85,6 +89,11 @@ useSeo({
     <h1>Comparte y gana saldo</h1>
 
     <p v-if="cargando" class="amigas__loading">Cargando tu plan…</p>
+
+    <div v-else-if="errorCarga" class="panel amigas__error">
+      <p>{{ errorCarga }}</p>
+      <button class="btn btn--ghost" @click="cargar">Reintentar</button>
+    </div>
 
     <template v-else-if="datos">
       <!-- Progreso hacia la siguiente meta -->
@@ -201,6 +210,13 @@ h1 {
 
 .amigas__loading,
 .amigas__vacio {
+  color: var(--muted);
+}
+
+.amigas__error {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
   color: var(--muted);
 }
 
