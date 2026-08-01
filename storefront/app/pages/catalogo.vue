@@ -148,7 +148,11 @@ const quickAdd = async (p: any) => {
   setTimeout(() => (added.value = null), 1600)
 }
 
-useHead({ title: "Catálogo | Angie Catálogos" })
+useSeo({
+  title: "Catálogo de perfumes, cuidado personal y moda",
+  description:
+    "Explora el catálogo completo: perfumes de Yanbal, Cyzone y Avon, protección solar, cremas y moda. Filtra por marca, categoría y precio. Envío a todo Ecuador.",
+})
 </script>
 
 <template>

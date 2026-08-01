@@ -82,7 +82,7 @@ const ordinal = (idx: number) => orders.value.length - idx
 const fecha = (iso: string) =>
   new Date(iso).toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" })
 
-useHead({ title: "Mi cuenta | Angie Catálogos" })
+useSeo({ title: "Mi cuenta", description: "Tus pedidos y datos en Angie Catálogos.", noindex: true })
 </script>
 
 <template>

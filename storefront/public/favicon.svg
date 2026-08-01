@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Angie Catálogos">
+  <!-- Hexágono de la marca, con las puntas a los lados como en el logo -->
+  <path fill="#9b1b60" d="M23.5 2.5 31 16l-7.5 13.5h-15L1 16 8.5 2.5Z"/>
+  <!-- Tiendita: techo a dos aguas, cuerpo y puerta -->
+  <g fill="none" stroke="#fdfaf7" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M10 13.4 16 9l6 4.4"/>
+    <path d="M11.2 13.8v8.4h9.6v-8.4"/>
+    <path d="M14.2 22.2v-4.6h3.6v4.6"/>
+  </g>
+</svg>

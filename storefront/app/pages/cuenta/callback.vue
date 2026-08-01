@@ -44,7 +44,7 @@ onMounted(async () => {
   }
 })
 
-useHead({ title: "Iniciando sesión… | Angie Catálogos" })
+useSeo({ title: "Iniciando sesión…", description: "Validando tu acceso.", noindex: true })
 </script>
 
 <template>

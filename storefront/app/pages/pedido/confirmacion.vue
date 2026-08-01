@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const order = useState<any>("last_order")
 
-useHead({ title: "¡Pedido confirmado! | Angie Catálogos" })
+useSeo({ title: "¡Pedido confirmado!", description: "Gracias por tu compra en Angie Catálogos.", noindex: true })
 
 const trackingCode = computed(
   () => `AC-${String(order.value?.display_id ?? 0).padStart(4, "0")}`

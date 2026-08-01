@@ -1,5 +1,8 @@
 <script setup lang="ts">
-useHead({ title: "Angie Catálogos | Belleza y Moda en Ecuador" })
+const { public: cfg } = useRuntimeConfig()
+
+/** Marcas de catálogo con las que trabajamos. Añade aquí las que falten. */
+const MARCAS = ["Yanbal", "Cyzone", "Avon"]
 
 const faqs = [
   {
@@ -19,6 +22,50 @@ const faqs = [
     a: "Al confirmar tu pedido en la tienda coordinamos el pago contigo por WhatsApp (transferencia o contra entrega). Muy pronto también podrás pagar en línea con tarjeta.",
   },
 ]
+
+useSeo({
+  title: "Yanbal, Cyzone y Avon en Ecuador",
+  description:
+    "Perfumes, protección solar, cremas y moda de catálogo con asesoría personalizada. Marcas originales como Yanbal, Cyzone y Avon, con envío a todo Ecuador y retiro gratis en Machachi.",
+})
+
+useJsonLd({
+  "@context": "https://schema.org",
+  "@type": "Store",
+  name: "Angie Catálogos",
+  description:
+    "Venta por catálogo de perfumería, cuidado personal y moda en Ecuador.",
+  url: cfg.siteUrl,
+  image: `${cfg.siteUrl}/og-image.jpg`,
+  logo: `${cfg.siteUrl}/img/logo.png`,
+  telephone: "+593980441321",
+  priceRange: "$$",
+  currenciesAccepted: "USD",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Av. Fernández Salvador y L Vía Tesalia",
+    addressLocality: "Machachi",
+    addressRegion: "Pichincha",
+    addressCountry: "EC",
+  },
+  areaServed: { "@type": "Country", name: "Ecuador" },
+  brand: MARCAS.map((name) => ({ "@type": "Brand", name })),
+  sameAs: [
+    "https://www.facebook.com/catalogosdemodaecuador",
+    "https://www.instagram.com/catalogosdemodaecuador/",
+  ],
+})
+
+// Las preguntas frecuentes pueden salir desplegadas en el resultado de Google
+useJsonLd({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+})
 </script>
 
 <template>
@@ -30,8 +77,9 @@ const faqs = [
           <span class="eyebrow">Venta por catálogo en Ecuador</span>
           <h1>La belleza que <em>realza</em> quién eres</h1>
           <p>
-            Perfumes de autor, protección solar y moda seleccionada con asesoría
-            personalizada. Compra y ahorra — o emprende y gana con nosotros.
+            Perfumes, protección solar, cremas y moda de las marcas de catálogo
+            que ya conoces, con asesoría personalizada. Compra y ahorra — o
+            emprende y gana con nosotros.
           </p>
           <div class="hero__actions">
             <NuxtLink to="/catalogo" class="btn">Descubrir el catálogo</NuxtLink>
@@ -47,12 +95,29 @@ const faqs = [
           <ul class="hero__trust">
             <li><strong>8 años</strong><span>en el mercado</span></li>
             <li><strong>100%</strong><span>productos originales</span></li>
-            <li><strong>+9 marcas</strong><span>de catálogo</span></li>
+            <li><strong>Envío</strong><span>a todo el país</span></li>
           </ul>
         </div>
         <div class="hero__media">
-          <img src="/img/header-bg.webp" alt="Angie — asesora de venta por catálogo en Ecuador" />
+          <img
+            src="/img/header-bg.webp"
+            alt="Angie, asesora de venta por catálogo en Machachi, Ecuador"
+            width="1144"
+            height="872"
+            fetchpriority="high"
+          />
         </div>
+      </div>
+    </section>
+
+    <!-- ── Marcas con las que trabajamos ── -->
+    <section class="brands">
+      <div class="container brands__inner">
+        <span class="brands__label">Marcas originales</span>
+        <ul class="brands__list">
+          <li v-for="m in MARCAS" :key="m">{{ m }}</li>
+          <li class="brands__more">y más</li>
+        </ul>
       </div>
     </section>
 
@@ -111,9 +176,9 @@ const faqs = [
     <section class="stats">
       <div class="container stats__inner">
         <div><strong>8</strong><span>años de trayectoria</span></div>
-        <div><strong>+9</strong><span>marcas de catálogo</span></div>
         <div><strong>100%</strong><span>originales garantizados</span></div>
         <div><strong>1–3</strong><span>días de entrega</span></div>
+        <div><strong>Gratis</strong><span>envío en Mejía</span></div>
       </div>
     </section>
 
@@ -122,11 +187,18 @@ const faqs = [
       <div class="cta__card">
         <div>
           <h2>¿Lista para encontrar tu próximo favorito?</h2>
-          <p>Explora por marca, filtra por precio y descubre las promociones de la semana.</p>
+          <p>Explora por marca, filtra por categoría y precio, y pide sin salir de casa.</p>
         </div>
         <div class="cta__actions">
           <NuxtLink to="/catalogo" class="btn">Ver catálogo</NuxtLink>
-          <NuxtLink to="/catalogo" class="btn btn--ghost">Promociones</NuxtLink>
+          <a
+            href="https://wa.me/593980441321"
+            target="_blank"
+            rel="noopener"
+            class="btn btn--ghost"
+          >
+            Consultar por WhatsApp
+          </a>
         </div>
       </div>
     </section>
@@ -185,6 +257,62 @@ const faqs = [
   font-size: clamp(2.4rem, 5vw, 3.8rem);
   line-height: 1.08;
   margin: 0.9rem 0 1rem;
+}
+
+/* ── Franja de marcas ── */
+.brands {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+.brands__inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.9rem 2rem;
+  padding-block: 1.4rem;
+}
+
+.brands__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.brands__list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem 1.75rem;
+  list-style: none;
+}
+
+.brands__list li {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.brands__more {
+  font-style: italic;
+  color: var(--muted) !important;
+  font-size: 1.15rem !important;
+}
+
+@media (max-width: 560px) {
+  .brands__inner {
+    gap: 0.5rem;
+  }
+
+  .brands__list li {
+    font-size: 1.2rem;
+  }
 }
 
 .hero__text h1 em {

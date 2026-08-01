@@ -209,7 +209,12 @@ const placeOrder = async () => {
   }
 }
 
-useHead({ title: "Checkout | Angie Catálogos" })
+// Las páginas de compra no deben salir en buscadores
+useSeo({
+  title: "Finalizar compra",
+  description: "Completa tu pedido en Angie Catálogos.",
+  noindex: true,
+})
 </script>
 
 <template>

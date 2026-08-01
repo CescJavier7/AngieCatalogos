@@ -11,7 +11,7 @@ const { data: product } = await useAsyncData(
       handle: route.params.handle as string,
       region_id: region.value?.id,
       fields:
-        "id,title,handle,description,thumbnail,*images,*variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,*variants.options,*options,*categories",
+        "id,title,handle,description,thumbnail,*images,*variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,*variants.options,*options,*categories,*collection,variants.sku",
     })
     return products[0] ?? null
   },
@@ -55,11 +55,47 @@ const whatsappUrl = computed(() => {
   return `https://wa.me/593980441321?text=${encodeURIComponent(msg)}`
 })
 
-useHead(() => ({
-  title: product.value
-    ? `${product.value.title} | Angie Catálogos`
-    : "Producto | Angie Catálogos",
-}))
+const { public: cfg } = useRuntimeConfig()
+
+const seoDescription = computed(() => {
+  const p: any = product.value
+  if (!p) return "Producto del catálogo de Angie Catálogos."
+  const base = (p.description ?? "").trim()
+  const marca = p.collection?.title ? `${p.collection.title} · ` : ""
+  return (
+    base ||
+    `${marca}${p.title} al mejor precio en Ecuador. Producto original con envío a todo el país y retiro gratis en Machachi.`
+  ).slice(0, 300)
+})
+
+useSeo({
+  title: product.value?.title ?? "Producto",
+  description: seoDescription.value,
+  image: product.value?.thumbnail || undefined,
+})
+
+// Ficha de producto para Google: precio, moneda y disponibilidad
+useJsonLd({
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: product.value?.title,
+  description: seoDescription.value,
+  image: product.value?.thumbnail ? [product.value.thumbnail] : undefined,
+  sku: (variant.value as any)?.sku,
+  brand: (product.value as any)?.collection?.title
+    ? { "@type": "Brand", name: (product.value as any).collection.title }
+    : undefined,
+  offers: {
+    "@type": "Offer",
+    url: `${cfg.siteUrl}/productos/${product.value?.handle}`,
+    priceCurrency: "USD",
+    price: (variant.value as any)?.calculated_price?.calculated_amount,
+    availability: soldOut.value
+      ? "https://schema.org/OutOfStock"
+      : "https://schema.org/InStock",
+    seller: { "@type": "Organization", name: "Angie Catálogos" },
+  },
+})
 </script>
 
 <template>
