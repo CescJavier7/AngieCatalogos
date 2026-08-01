@@ -56,9 +56,10 @@ const usarCodigo = async () => {
     codigoAmiga.value = ""
     await cargar()
   } catch (e: any) {
+    // El SDK vuelca el mensaje del backend en e.message
     mensajeCanje.value = {
       ok: false,
-      texto: e?.data?.message ?? "No se pudo aplicar el código.",
+      texto: e?.message || "No se pudo aplicar el código.",
     }
   }
 }
@@ -148,7 +149,11 @@ useSeo({
 
       <!-- Amigas invitadas -->
       <section class="panel">
-        <h2>Tus amigas ({{ datos.qualified_count }} premiadas)</h2>
+        <h2>Tus amigas</h2>
+        <p v-if="datos.amigos.length" class="amigas__contador">
+          {{ datos.qualified_count }} de {{ datos.amigos.length }}
+          {{ datos.amigos.length === 1 ? "ya te dio premio" : "ya te dieron premio" }}.
+        </p>
         <p v-if="!datos.amigos.length" class="amigas__vacio">
           Todavía no has invitado a nadie. ¡Comparte tu código!
         </p>
@@ -218,6 +223,12 @@ h1 {
   gap: 0.9rem;
   justify-items: start;
   color: var(--muted);
+}
+
+.amigas__contador {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: -0.4rem 0 0.9rem;
 }
 
 .panel {
