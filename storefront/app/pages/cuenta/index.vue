@@ -97,6 +97,15 @@ useSeo({ title: "Mi cuenta", description: "Tus pedidos y datos en Angie Catálog
         <button class="btn btn--ghost" @click="salir">Cerrar sesión</button>
       </div>
 
+      <NuxtLink to="/cuenta/amigas" class="invita">
+        <span class="invita__icon">🎁</span>
+        <span class="invita__text">
+          <strong>Invita y gana hasta $20</strong>
+          Comparte tu código: tu amiga se lleva $2 y tú sumas saldo.
+        </span>
+        <span class="invita__arrow">→</span>
+      </NuxtLink>
+
       <section class="orders">
         <h2>Mis pedidos</h2>
 
@@ -228,6 +237,45 @@ useSeo({ title: "Mi cuenta", description: "Tus pedidos y datos en Angie Catálog
 h1 {
   font-size: clamp(1.9rem, 4vw, 2.7rem);
   margin-top: 0.3rem;
+}
+
+.invita {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(120deg, var(--primary-soft), var(--bg));
+  border: 1px solid var(--primary);
+  border-radius: 1.1rem;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 2rem;
+  transition: transform 0.15s ease;
+}
+
+.invita:hover {
+  transform: translateY(-2px);
+}
+
+.invita__icon {
+  font-size: 1.7rem;
+}
+
+.invita__text {
+  display: grid;
+  gap: 0.15rem;
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.invita__text strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.invita__arrow {
+  color: var(--primary);
+  font-size: 1.3rem;
+  font-weight: 700;
 }
 
 .orders h2 {
