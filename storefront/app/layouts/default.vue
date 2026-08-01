@@ -59,6 +59,7 @@ onMounted(() => {
     </main>
 
     <CartDrawer />
+    <PromoEnvios />
 
     <a
       class="whatsapp-float"

@@ -3,42 +3,49 @@ const medusa = useMedusa()
 const { cart, refresh, reset } = useCart()
 const { customer, fetchCustomer } = useCustomer()
 
-/** Solo vendemos dentro de Ecuador. Galápagos se coordina por WhatsApp. */
-const PROVINCIAS = [
-  "Azuay", "Bolívar", "Cañar", "Carchi", "Chimborazo", "Cotopaxi", "El Oro",
-  "Esmeraldas", "Guayas", "Imbabura", "Loja", "Los Ríos",
-  "Manabí", "Morona Santiago", "Napo", "Orellana", "Pastaza", "Pichincha",
-  "Santa Elena", "Santo Domingo de los Tsáchilas", "Sucumbíos", "Tungurahua",
-  "Zamora Chinchipe",
-]
-
-const CANTONES_PICHINCHA = [
-  "Cayambe", "Mejía", "Pedro Moncayo", "Pedro Vicente Maldonado",
-  "Puerto Quito", "Quito", "Rumiñahui", "San Miguel de los Bancos",
-]
-
-/** El nombre de cada opción de envío en Medusa, mapeado a su zona. */
-const ZONA_POR_OPCION: Record<string, string> = {
-  "Envío gratis en Mejía": "mejia",
-  "Envío en Pichincha": "pichincha",
-  "Envío a provincias": "provincias",
-  "Retiro en Machachi": "retiro",
-}
-
-const BODEGA = "Bodega Angie Catálogos — Av. Fernández Salvador y L Vía Tesalia, Machachi"
+const BODEGA = "Av. Fernández Salvador y L Vía Tesalia, Machachi"
 
 const form = reactive({
   email: "",
   first_name: "",
   last_name: "",
   phone: "",
-  address_1: "",
-  city: "",
+  cedula: "",
+  // Dirección al detalle: es lo que la transportadora necesita en la guía
+  calle_principal: "",
+  numeracion: "",
+  calle_secundaria: "",
+  referencia: "",
   province: "Pichincha",
   canton: "Mejía",
+  parroquia: "Machachi",
   retira_nombre: "",
   retira_cedula: "",
 })
+
+/** Cantones de la provincia elegida. */
+const cantones = computed(() => PROVINCIAS[form.province] ?? [])
+
+/** En Mejía la parroquia decide la tarifa, así que se elige de una lista. */
+const parroquiaEsLista = computed(
+  () => form.province === "Pichincha" && form.canton === "Mejía"
+)
+
+// Al cambiar de provincia o cantón, los campos dependientes se reajustan
+watch(
+  () => form.province,
+  (p) => {
+    if (!(PROVINCIAS[p] ?? []).includes(form.canton)) {
+      form.canton = PROVINCIAS[p]?.[0] ?? ""
+    }
+  }
+)
+watch(
+  () => form.canton,
+  () => {
+    form.parroquia = parroquiaEsLista.value ? PARROQUIAS_MEJIA[0]! : ""
+  }
+)
 
 const shippingOptions = ref<any[]>([])
 const selectedShipping = ref<string | null>(null)
@@ -63,11 +70,14 @@ onMounted(async () => {
     form.phone = customer.value.phone ?? ""
     const addr = customer.value.addresses?.[0]
     if (addr) {
-      form.address_1 = addr.address_1 ?? ""
-      form.city = addr.city ?? ""
+      form.calle_principal = addr.address_1 ?? ""
+      form.referencia = addr.address_2 ?? ""
       // Una dirección guardada de antes puede traer una provincia que ya no ofrecemos
-      if (addr.province && PROVINCIAS.includes(addr.province)) {
+      if (addr.province && PROVINCIAS[addr.province]) {
         form.province = addr.province
+        if ((PROVINCIAS[addr.province] ?? []).includes(addr.city ?? "")) {
+          form.canton = addr.city!
+        }
       }
     }
   }
@@ -82,17 +92,20 @@ onMounted(async () => {
   loaded.value = true
 })
 
-/** Mejía no paga envío; el resto de Pichincha $3; cualquier otra provincia $6. */
-const zona = computed(() => {
-  if (form.province !== "Pichincha") return "provincias"
-  return form.canton === "Mejía" ? "mejia" : "pichincha"
-})
+/** Mejía sin recargo (salvo Tandapí), resto de Pichincha $3, provincias $6. */
+const zona = computed(() =>
+  zonaDeEnvio(form.province, form.canton, form.parroquia)
+)
 
-/** Solo se ofrece la tarifa que corresponde a la dirección, más el retiro. */
+/**
+ * Solo se muestra la tarifa que corresponde a la dirección. El retiro en
+ * bodega únicamente dentro de Pichincha: nadie viene de Guayas a recogerlo.
+ */
 const opcionesVisibles = computed(() =>
   shippingOptions.value.filter((o) => {
     const z = ZONA_POR_OPCION[o.name]
-    return z === zona.value || z === "retiro"
+    if (z === "retiro") return permiteRetiro(form.province)
+    return z === zona.value
   })
 )
 
@@ -115,6 +128,34 @@ watch(
   { immediate: true }
 )
 
+/** Explica al cliente por qué su envío cuesta lo que cuesta. */
+const avisoZona = computed(() => {
+  if (esRetiro.value) {
+    return { tono: "ok", texto: `Retiras sin costo en ${BODEGA}.` }
+  }
+  if (zona.value === "mejia") {
+    return {
+      tono: "ok",
+      texto:
+        "¡Tu envío es gratis! Repartimos nosotros dentro de Mejía, normalmente el mismo día.",
+    }
+  }
+  if (zona.value === "pichincha") {
+    return {
+      tono: "info",
+      texto:
+        form.canton === "Mejía"
+          ? "Tandapí queda fuera de nuestra ruta de reparto, así que va por transportadora: $3, de 1 a 2 días."
+          : "Envío a Pichincha por $3, con entrega de 1 a 2 días hábiles.",
+    }
+  }
+  return {
+    tono: "info",
+    texto:
+      "Envío a provincia por $6 mediante transportadora, con entrega de 2 a 4 días hábiles.",
+  }
+})
+
 /** Dígito verificador de la cédula ecuatoriana (10 dígitos). */
 const cedulaValida = (valor: string) => {
   if (!/^\d{10}$/.test(valor)) return false
@@ -135,6 +176,38 @@ const errorCedula = computed(() => {
   return cedulaValida(form.retira_cedula) ? null : "Esa cédula no es válida."
 })
 
+const errorCedulaCliente = computed(() => {
+  if (esRetiro.value || !form.cedula) return null
+  return cedulaValida(form.cedula) ? null : "Esa cédula no es válida."
+})
+
+/** Calle principal, numeración y calle secundaria en una sola línea. */
+const direccionLinea = computed(() =>
+  [
+    form.calle_principal.trim(),
+    form.numeracion.trim() && `N° ${form.numeracion.trim()}`,
+    form.calle_secundaria.trim() && `y ${form.calle_secundaria.trim()}`,
+  ]
+    .filter(Boolean)
+    .join(" ")
+)
+
+/** Vista previa de cómo saldrá rotulada la guía de la transportadora. */
+const guiaPreview = computed(() => {
+  const lugar = [form.parroquia, form.canton, form.province]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(", ")
+  return [
+    `${form.first_name} ${form.last_name}`.trim(),
+    form.cedula && `C.I. ${form.cedula}`,
+    direccionLinea.value,
+    lugar,
+    form.referencia && `Ref: ${form.referencia}`,
+    form.phone,
+  ].filter(Boolean)
+})
+
 const shippingAmount = computed(() => opcionElegida.value?.amount ?? 0)
 
 const total = computed(
@@ -149,30 +222,43 @@ const placeOrder = async () => {
     error.value = "Revisa la cédula de quien va a retirar el pedido."
     return
   }
+  if (!esRetiro.value && !cedulaValida(form.cedula)) {
+    error.value = "Revisa tu número de cédula: la transportadora lo exige en la guía."
+    return
+  }
 
   submitting.value = true
   try {
     // 1. Datos del cliente y dirección
     await medusa.store.cart.update(cart.value.id, {
       email: form.email,
-      // Quien retira en Machachi queda registrado en el pedido
       metadata: esRetiro.value
         ? {
-            retiro_en_bodega: "si",
+            // Quien retira en Machachi queda registrado en el pedido
+            entrega: "retiro_bodega",
             retira_nombre: form.retira_nombre.trim(),
             retira_cedula: form.retira_cedula.trim(),
           }
-        : {},
+        : {
+            // Datos sueltos para llenar la guía sin tener que parsear la dirección
+            entrega: zona.value === "mejia" ? "reparto_propio" : "transportadora",
+            zona: zona.value,
+            cedula: form.cedula.trim(),
+            provincia: form.province,
+            canton: form.canton,
+            parroquia: form.parroquia.trim(),
+            calle_principal: form.calle_principal.trim(),
+            numeracion: form.numeracion.trim(),
+            calle_secundaria: form.calle_secundaria.trim(),
+            referencia: form.referencia.trim(),
+          },
       shipping_address: {
         first_name: form.first_name,
         last_name: form.last_name,
         phone: form.phone,
-        address_1: esRetiro.value ? BODEGA : form.address_1,
-        city: esRetiro.value
-          ? "Machachi"
-          : form.province === "Pichincha"
-            ? `${form.city} (${form.canton})`
-            : form.city,
+        address_1: esRetiro.value ? BODEGA : direccionLinea.value,
+        address_2: esRetiro.value ? "" : form.referencia.trim(),
+        city: esRetiro.value ? "Machachi" : form.parroquia.trim() || form.canton,
         province: esRetiro.value ? "Pichincha" : form.province,
         country_code: "ec",
       },
@@ -264,35 +350,27 @@ useSeo({
             <label>
               Provincia
               <select v-model="form.province">
-                <option v-for="p in PROVINCIAS" :key="p" :value="p">{{ p }}</option>
+                <option v-for="p in NOMBRES_PROVINCIAS" :key="p" :value="p">{{ p }}</option>
               </select>
             </label>
-            <label v-if="form.province === 'Pichincha'">
+            <label>
               Cantón
               <select v-model="form.canton">
-                <option v-for="c in CANTONES_PICHINCHA" :key="c" :value="c">{{ c }}</option>
+                <option v-for="c in cantones" :key="c" :value="c">{{ c }}</option>
               </select>
             </label>
-            <label v-else>
-              Ciudad
-              <input v-model="form.city" :required="!esRetiro" autocomplete="address-level2" />
-            </label>
           </div>
 
-          <div v-if="form.province === 'Pichincha'" class="fields__row">
-            <label>
-              Ciudad o parroquia
-              <input v-model="form.city" :required="!esRetiro" autocomplete="address-level2" />
-            </label>
-          </div>
-
-          <label v-if="!esRetiro">
-            Dirección
+          <label>
+            Parroquia
+            <select v-if="parroquiaEsLista" v-model="form.parroquia">
+              <option v-for="p in PARROQUIAS_MEJIA" :key="p" :value="p">{{ p }}</option>
+            </select>
             <input
-              v-model="form.address_1"
-              required
-              placeholder="Calle principal, número, referencia"
-              autocomplete="street-address"
+              v-else
+              v-model="form.parroquia"
+              placeholder="Parroquia, barrio o sector"
+              autocomplete="address-level3"
             />
           </label>
 
@@ -323,14 +401,74 @@ useSeo({
                 {{ opt.amount ? formatMoney(opt.amount) : "Gratis" }}
               </span>
             </label>
+            <p class="zona-note" :class="`zona-note--${avisoZona.tono}`">
+              {{ avisoZona.texto }}
+            </p>
+          </fieldset>
+
+          <!-- Dirección al detalle: es lo que se rotula en la guía -->
+          <fieldset v-if="!esRetiro" class="direccion">
+            <legend>¿A dónde lo enviamos?</legend>
+            <div class="fields">
+              <div class="fields__row fields__row--3">
+                <label class="span-2">
+                  Calle principal
+                  <input
+                    v-model="form.calle_principal"
+                    required
+                    placeholder="Av. Amazonas"
+                    autocomplete="address-line1"
+                  />
+                </label>
+                <label>
+                  Numeración
+                  <input v-model="form.numeracion" placeholder="N34-12" />
+                </label>
+              </div>
+              <label>
+                Calle secundaria
+                <input
+                  v-model="form.calle_secundaria"
+                  placeholder="Intersección más cercana"
+                  autocomplete="address-line2"
+                />
+              </label>
+              <label>
+                Referencia para encontrarte
+                <input
+                  v-model="form.referencia"
+                  required
+                  placeholder="Casa de portón verde, junto a la farmacia"
+                />
+              </label>
+              <label>
+                Tu cédula
+                <input
+                  v-model="form.cedula"
+                  required
+                  inputmode="numeric"
+                  maxlength="10"
+                  placeholder="10 dígitos"
+                />
+                <small class="hint">
+                  La transportadora la exige para entregarte el paquete.
+                </small>
+                <small v-if="errorCedulaCliente" class="pickup__error">
+                  {{ errorCedulaCliente }}
+                </small>
+              </label>
+            </div>
+
+            <div v-if="direccionLinea" class="guia">
+              <strong>Así saldrá tu guía</strong>
+              <p v-for="(l, i) in guiaPreview" :key="i">{{ l }}</p>
+            </div>
           </fieldset>
 
           <!-- Quien retira debe identificarse al llegar a la bodega -->
           <fieldset v-if="esRetiro" class="pickup">
             <legend>¿Quién retira el pedido?</legend>
-            <p class="pickup__note">
-              Presenta la cédula al retirar en {{ BODEGA.split('—')[1]?.trim() }}.
-            </p>
+            <p class="pickup__note">Presenta la cédula al retirar en {{ BODEGA }}.</p>
             <div class="fields">
               <label>
                 Nombre completo de quien retira
@@ -522,6 +660,71 @@ h1 {
   color: var(--gold);
 }
 
+.zona-note {
+  font-size: 0.85rem;
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.zona-note--ok {
+  background: rgba(31, 138, 91, 0.1);
+  color: var(--success);
+  font-weight: 600;
+}
+
+.zona-note--info {
+  background: var(--blush);
+  color: var(--muted);
+}
+
+.direccion {
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  padding: 1.1rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.direccion legend {
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding-inline: 0.4rem;
+}
+
+.fields__row--3 {
+  grid-template-columns: 1fr 1fr 0.8fr;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.guia {
+  background: var(--bg);
+  border: 1px dashed var(--line);
+  border-radius: 0.7rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.guia strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
 .galapagos-note {
   font-size: 0.85rem;
   color: var(--muted);
@@ -653,8 +856,13 @@ h1 {
 }
 
 @media (max-width: 560px) {
-  .fields__row {
+  .fields__row,
+  .fields__row--3 {
     grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: auto;
   }
 }
 </style>
