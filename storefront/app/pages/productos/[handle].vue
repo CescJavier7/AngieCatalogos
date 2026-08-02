@@ -57,6 +57,20 @@ const whatsappUrl = computed(() => {
 
 const { public: cfg } = useRuntimeConfig()
 
+/**
+ * Cuenta la visita para el panel de Angie. No envía nada de quien mira: solo
+ * el producto, así que no hace falta consentimiento de cookies.
+ */
+onMounted(() => {
+  const id = product.value?.id
+  if (!id) return
+  medusa.client
+    .fetch("/store/product-views", { method: "POST", body: { product_id: id } })
+    .catch(() => {
+      /* que una métrica nunca rompa la ficha */
+    })
+})
+
 const seoDescription = computed(() => {
   const p: any = product.value
   if (!p) return "Producto del catálogo de Angie Catálogos."

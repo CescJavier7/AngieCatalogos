@@ -27,6 +27,9 @@ module.exports = defineConfig({
       resolve: "./src/modules/referrals",
     },
     {
+      resolve: "./src/modules/analytics",
+    },
+    {
       resolve: "@medusajs/medusa/auth",
       options: {
         providers: [

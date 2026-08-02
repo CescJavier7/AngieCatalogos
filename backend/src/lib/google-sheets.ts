@@ -13,7 +13,8 @@ const SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets"
 
 /**
  * Pestaña y layout del inventario. La hoja es el panel de control:
- * columnas A..J. Stock se mantiene en la columna D.
+ * columnas A..K. Stock se mantiene en la columna D y el costo en la K,
+ * que es lo que permite calcular el margen real de cada producto.
  */
 export const SHEET_TAB = "Productos"
 export const SHEET_HEADER = [
@@ -27,6 +28,7 @@ export const SHEET_HEADER = [
   "Marca", // H
   "Categorias", // I
   "Activo", // J
+  "Costo", // K
 ]
 
 let jwtClient: JWT | null = null
@@ -92,7 +94,7 @@ export const replaceAllRows = async (rows: unknown[][]) => {
 }
 
 /** Filas de datos (desde A2). */
-export const readDataRows = () => readRange(`${SHEET_TAB}!A2:J`)
+export const readDataRows = () => readRange(`${SHEET_TAB}!A2:K`)
 
 /** Escribe el stock (col D) de una fila concreta (1-indexed contando el header). */
 export const writeStockCell = (rowNumber: number, stock: number) =>

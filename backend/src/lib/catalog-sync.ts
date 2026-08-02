@@ -25,6 +25,7 @@ type CatalogRow = {
   brand: string
   categories: string
   active: boolean
+  cost: number | null
   variantId: string
   productId: string
   inventoryItemId: string | null
@@ -69,6 +70,7 @@ export const buildCatalogRows = async (
     fields: [
       "id",
       "sku",
+      "metadata",
       "product.id",
       "product.title",
       "product.description",
@@ -121,6 +123,7 @@ export const buildCatalogRows = async (
           .map((c: any) => c.name)
           .join(", "),
         active: v.product?.status === "published",
+        cost: v.metadata?.costo != null ? Number(v.metadata.costo) : null,
         variantId: v.id,
         productId: v.product?.id,
         inventoryItemId: item?.id ?? null,
@@ -140,6 +143,7 @@ export const rowsForSheet = (rows: CatalogRow[]) =>
     r.brand,
     r.categories,
     r.active ? "SI" : "NO",
+    r.cost ?? "",
   ])
 
 /** Guarda en metadata del item el stock que dejamos escrito en la hoja. */
@@ -226,11 +230,13 @@ export type SheetRecord = {
   brand: string
   categories: string
   active: boolean
+  cost: number | null
 }
 
 const parseSheetRow = (row: string[], rowNumber: number): SheetRecord => {
   const price = parseFloat((row[2] ?? "").replace(",", "."))
   const stock = parseInt(row[3] ?? "", 10)
+  const cost = parseFloat((row[10] ?? "").replace(",", "."))
   return {
     rowNumber,
     sku: (row[0] ?? "").trim(),
@@ -243,6 +249,7 @@ const parseSheetRow = (row: string[], rowNumber: number): SheetRecord => {
     brand: (row[7] ?? "").trim(),
     categories: (row[8] ?? "").trim(),
     active: parseActive(row[9]),
+    cost: isNaN(cost) ? null : cost,
   }
 }
 
@@ -284,6 +291,8 @@ export const createProductFromSheet = async (
               sku,
               options: { Presentación: "Único" },
               prices: [{ amount: rec.price ?? 0, currency_code: "usd" }],
+              // El costo vive en la variante: es lo que permite el margen
+              metadata: rec.cost != null ? { costo: rec.cost } : undefined,
             },
           ],
           sales_channels: [{ id: ctx.salesChannelId }],
@@ -390,6 +399,17 @@ export const applySheetToDb = async (container: MedusaContainer) => {
       ])
       await rememberSyncedStock(container, db.inventoryItemId, rec.stock)
       changes.push(`${rec.sku}: stock ${db.stock} → ${rec.stock}`)
+    }
+
+    // ── Costo (columna K): base del margen que se ve en el panel ──
+    if (rec.cost != null && rec.cost >= 0 && rec.cost !== db.cost) {
+      await updateProductVariantsWorkflow(container).run({
+        input: {
+          selector: { id: db.variantId },
+          update: { metadata: { costo: rec.cost } },
+        },
+      })
+      changes.push(`${rec.sku}: costo ${db.cost ?? "—"} → ${rec.cost}`)
     }
 
     // ── Campos de producto (descripción, imagen, marca, categorías, activo, promo) ──
