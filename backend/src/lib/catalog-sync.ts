@@ -48,6 +48,18 @@ const slugify = (s: string) =>
 
 const isImageUrl = (s: string) => /^https?:\/\/.+/i.test((s ?? "").trim())
 
+/** Dos listas "A, B" son iguales si contienen lo mismo, sin importar orden ni mayúsculas. */
+const mismasCategorias = (a: string, b: string) => {
+  const norm = (s: string) =>
+    (s ?? "")
+      .split(",")
+      .map((x) => slugify(x.trim()))
+      .filter(Boolean)
+      .sort()
+      .join("|")
+  return norm(a) === norm(b)
+}
+
 const parsePromo = (val: string | undefined) =>
   ["si", "sí", "yes", "true", "1", "x"].includes((val ?? "").trim().toLowerCase())
 
@@ -171,7 +183,14 @@ export const rememberAllSyncedStock = async (container: MedusaContainer) => {
   }
 }
 
-/** Busca (o crea) una colección de marca por nombre. */
+/**
+ * Busca (o crea) una colección de marca.
+ *
+ * La comparación va por handle normalizado, no por nombre exacto: Medusa
+ * exige handles únicos, así que "Yanbal" y "yanbal" son la MISMA colección.
+ * Buscar por nombre exacto hacía que se intentara crear una duplicada y la
+ * excepción tumbaba la sincronización entera.
+ */
 const resolveCollectionId = async (
   container: MedusaContainer,
   name: string
@@ -179,13 +198,32 @@ const resolveCollectionId = async (
   const clean = (name ?? "").trim()
   if (!clean) return undefined
   const product = container.resolve(Modules.PRODUCT)
-  const [existing] = await product.listProductCollections({ title: clean }, {})
-  if (existing) return existing.id
-  const [created] = await product.createProductCollections([{ title: clean }])
-  return created.id
+  const handle = slugify(clean)
+
+  const todas = await product.listProductCollections(
+    {},
+    { select: ["id", "title", "handle"] }
+  )
+  const existente = todas.find(
+    (c: any) => c.handle === handle || slugify(c.title ?? "") === handle
+  )
+  if (existente) return existente.id
+
+  try {
+    const [created] = await product.createProductCollections([{ title: clean }])
+    return created.id
+  } catch {
+    // Otra ejecución la creó entretanto: se reutiliza
+    const otra = (
+      await product.listProductCollections({}, { select: ["id", "title", "handle"] })
+    ).find(
+      (c: any) => c.handle === handle || slugify(c.title ?? "") === handle
+    )
+    return otra?.id
+  }
 }
 
-/** Convierte "A, B, C" en ids de categoría (creándolas si faltan). */
+/** Convierte "A, B, C" en ids de categoría, creando solo las que faltan. */
 const resolveCategoryIds = async (
   container: MedusaContainer,
   csv: string
@@ -195,17 +233,43 @@ const resolveCategoryIds = async (
     .map((s) => s.trim())
     .filter(Boolean)
   if (!names.length) return []
+
   const product = container.resolve(Modules.PRODUCT)
+  const existentes = await product.listProductCategories(
+    {},
+    { select: ["id", "name", "handle"] }
+  )
+  const porHandle = new Map<string, string>()
+  for (const c of existentes as any[]) {
+    porHandle.set(c.handle ?? slugify(c.name ?? ""), c.id)
+    porHandle.set(slugify(c.name ?? ""), c.id)
+  }
+
   const ids: string[] = []
   for (const name of names) {
-    const [existing] = await product.listProductCategories({ name }, {})
-    if (existing) {
-      ids.push(existing.id)
-    } else {
+    const handle = slugify(name)
+    const yaEsta = porHandle.get(handle)
+    if (yaEsta) {
+      ids.push(yaEsta)
+      continue
+    }
+    try {
       const [created] = await product.createProductCategories([
         { name, is_active: true },
       ])
+      porHandle.set(handle, created.id)
       ids.push(created.id)
+    } catch {
+      // El handle ya existía con otra capitalización: se reutiliza esa
+      const otra = (
+        await product.listProductCategories({}, { select: ["id", "name", "handle"] })
+      ).find(
+        (c: any) => (c.handle ?? slugify(c.name ?? "")) === handle
+      )
+      if (otra) {
+        porHandle.set(handle, otra.id)
+        ids.push(otra.id)
+      }
     }
   }
   return ids
@@ -369,6 +433,9 @@ export const applySheetToDb = async (container: MedusaContainer) => {
     const db = dbBySku.get(rec.sku)!
     seenSkus.add(rec.sku)
 
+    // Una fila con un dato raro no puede volver a tumbar el recorrido entero:
+    // se anota el fallo y se sigue con las demás.
+    try {
     // ── Precio ──
     if (rec.price != null && rec.price > 0 && rec.price !== db.price) {
       await updateProductVariantsWorkflow(container).run({
@@ -390,13 +457,29 @@ export const applySheetToDb = async (container: MedusaContainer) => {
       editedByHuman &&
       location
     ) {
-      await inventory.updateInventoryLevels([
-        {
-          inventory_item_id: db.inventoryItemId,
-          location_id: location.id,
-          stocked_quantity: rec.stock,
-        },
-      ])
+      // Si la variante nunca tuvo nivel en esta bodega, updateInventoryLevels
+      // lanza "is not stocked at location": hay que crearlo la primera vez.
+      const [nivel] = await inventory.listInventoryLevels(
+        { inventory_item_id: db.inventoryItemId, location_id: location.id },
+        {}
+      )
+      if (nivel) {
+        await inventory.updateInventoryLevels([
+          {
+            inventory_item_id: db.inventoryItemId,
+            location_id: location.id,
+            stocked_quantity: rec.stock,
+          },
+        ])
+      } else {
+        await inventory.createInventoryLevels([
+          {
+            inventory_item_id: db.inventoryItemId,
+            location_id: location.id,
+            stocked_quantity: rec.stock,
+          },
+        ])
+      }
       await rememberSyncedStock(container, db.inventoryItemId, rec.stock)
       changes.push(`${rec.sku}: stock ${db.stock} → ${rec.stock}`)
     }
@@ -414,6 +497,11 @@ export const applySheetToDb = async (container: MedusaContainer) => {
 
     // ── Campos de producto (descripción, imagen, marca, categorías, activo, promo) ──
     const update: any = {}
+    // El nombre también manda desde la hoja: corregir mayúsculas o una errata
+    // ahí debe verse en la tienda. El handle no se toca, para no romper enlaces.
+    if (rec.title && rec.title !== db.title) {
+      update.title = rec.title
+    }
     if (rec.description && rec.description !== db.description) {
       update.description = rec.description
     }
@@ -421,11 +509,16 @@ export const applySheetToDb = async (container: MedusaContainer) => {
       update.images = [{ url: rec.image }]
       update.thumbnail = rec.image
     }
-    if (rec.brand && rec.brand !== db.brand) {
+    if (rec.brand && slugify(rec.brand) !== slugify(db.brand)) {
       update.collection_id = await resolveCollectionId(container, rec.brand)
     }
-    if (rec.categories && rec.categories !== db.categories) {
-      update.category_ids = await resolveCategoryIds(container, rec.categories)
+    // Comparar como conjunto normalizado: ni el orden ni las mayúsculas
+    // deben provocar una reescritura en cada ejecución.
+    if (rec.categories && !mismasCategorias(rec.categories, db.categories)) {
+      // Al ACTUALIZAR, Medusa espera `categories` con objetos {id}; el
+      // `category_ids` que acepta la creación se ignora aquí en silencio.
+      const ids = await resolveCategoryIds(container, rec.categories)
+      update.categories = ids.map((id) => ({ id }))
     }
     if (rec.active !== db.active) {
       update.status = rec.active ? ProductStatus.PUBLISHED : ProductStatus.DRAFT
@@ -442,23 +535,40 @@ export const applySheetToDb = async (container: MedusaContainer) => {
         : current.filter((id: string) => id !== tagId)
     }
     if (Object.keys(update).length) {
+      // Por id y no por selector: la variante con `selector` ignora en
+      // silencio las relaciones como category_ids, y los cambios se
+      // reportaban como aplicados sin llegar nunca a la base.
       await updateProductsWorkflow(container).run({
-        input: { selector: { id: db.productId }, update },
+        input: { products: [{ id: db.productId, ...update }] },
       })
       changes.push(`${rec.sku}: ${Object.keys(update).join(", ")}`)
+    }
+    } catch (e: any) {
+      logger.error(
+        `[sheet-sync] Fila ${rec.rowNumber} (${rec.sku}) falló, se continúa: ${e.message}`
+      )
     }
   }
 
   // ── Ocultar productos que ya no están en la hoja (archivar, no borrar) ──
-  for (const db of dbRows) {
-    if (!seenSkus.has(db.sku) && db.active) {
-      await updateProductsWorkflow(container).run({
-        input: {
-          selector: { id: db.productId },
-          update: { status: ProductStatus.DRAFT },
-        },
-      })
-      changes.push(`${db.sku}: oculto (ya no está en la hoja)`)
+  // Si la hoja vino vacía o a medias, no se archiva nada: un fallo de lectura
+  // no puede dejar la tienda entera en borrador.
+  const lecturaFiable = sheetRaw.length >= Math.min(dbRows.length, 5)
+  if (!lecturaFiable) {
+    logger.warn(
+      `[sheet-sync] La hoja devolvió ${sheetRaw.length} filas para ${dbRows.length} productos: no se archiva nada por precaución.`
+    )
+  } else {
+    for (const db of dbRows) {
+      if (!seenSkus.has(db.sku) && db.active) {
+        await updateProductsWorkflow(container).run({
+          input: {
+            selector: { id: db.productId },
+            update: { status: ProductStatus.DRAFT },
+          },
+        })
+        changes.push(`${db.sku}: oculto (ya no está en la hoja)`)
+      }
     }
   }
 
