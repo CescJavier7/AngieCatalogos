@@ -180,6 +180,17 @@ const byBrand = computed(() => {
   return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
 })
 
+// Con la hoja abierta, el fondo no debe desplazarse: era lo que hacía que
+// los productos parecieran mezclarse con el panel.
+watch(filtersOpen, (abierto) => {
+  if (import.meta.client) {
+    document.body.style.overflow = abierto ? "hidden" : ""
+  }
+})
+onUnmounted(() => {
+  if (import.meta.client) document.body.style.overflow = ""
+})
+
 const added = ref<string | null>(null)
 const quickAdd = async (p: any) => {
   const variantId = p.variants?.[0]?.id
@@ -208,8 +219,11 @@ useSeo({
     <div class="catalog-page__layout">
       <!-- ── Sidebar de filtros ── -->
       <aside class="filters" :class="{ 'filters--open': filtersOpen }">
+        <div class="hoja__barra">
+          <span class="hoja__asa" />
+        </div>
         <div class="filters__head">
-          <strong>Filtrar</strong>
+          <strong>Filtrar y ordenar</strong>
           <button v-if="activeFilters" class="filters__clear" @click="clearFilters">
             Limpiar ({{ activeFilters }})
           </button>
@@ -283,7 +297,18 @@ useSeo({
             />
           </div>
         </fieldset>
+        <!-- Salida evidente: en móvil no basta con volver a tocar la isla -->
+        <div class="hoja__pie">
+          <button class="btn hoja__ver" @click="filtersOpen = false">
+            Ver {{ filtered.length }}
+            {{ filtered.length === 1 ? "producto" : "productos" }}
+          </button>
+        </div>
       </aside>
+
+      <transition name="fondo">
+        <div v-if="filtersOpen" class="hoja__fondo" @click="filtersOpen = false" />
+      </transition>
 
       <!-- ── Resultados agrupados por marca ── -->
       <div class="results">
@@ -340,14 +365,17 @@ useSeo({
 
     <!-- Isla flotante: filtrar desde cualquier punto del scroll -->
     <div class="isla" :class="{ 'isla--abierta': filtersOpen }">
-      <button class="isla__btn" @click="filtersOpen = !filtersOpen">
+      <button class="isla__btn" @click="filtersOpen = true">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M3 5h18M6 12h12M10 19h4" />
         </svg>
-        <span>{{ filtersOpen ? "Cerrar" : "Filtrar y ordenar" }}</span>
+        <span>Filtrar y ordenar</span>
         <span v-if="activeFilters" class="isla__badge">{{ activeFilters }}</span>
       </button>
-      <span class="isla__count">{{ filtered.length }}</span>
+      <span class="isla__count">
+        {{ filtered.length }}
+        <small>{{ filtered.length === 1 ? "artículo" : "artículos" }}</small>
+      </span>
     </div>
   </div>
 </template>
@@ -659,17 +687,30 @@ useSeo({
   display: none;
   position: fixed;
   left: 50%;
-  bottom: 1.1rem;
+  top: 5.4rem;
   transform: translateX(-50%);
-  z-index: 70;
+  z-index: 60;
   align-items: center;
-  gap: 0.5rem;
-  background: rgba(42, 30, 38, 0.94);
-  backdrop-filter: blur(12px);
+  gap: 0.4rem;
+  background: rgba(42, 30, 38, 0.93);
+  backdrop-filter: blur(14px);
   border-radius: 999px;
-  padding: 0.35rem 0.35rem 0.35rem 0.5rem;
-  box-shadow: 0 10px 30px rgba(42, 30, 38, 0.35);
-  transition: border-radius 0.3s ease, background 0.3s ease;
+  padding: 0.3rem 0.3rem 0.3rem 0.45rem;
+  box-shadow: 0 8px 28px rgba(42, 30, 38, 0.3);
+  animation: isla-entra 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+/* Con la hoja abierta la isla se retira: su función la asume el panel */
+.isla--abierta {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-0.6rem) scale(0.85);
+  pointer-events: none;
+}
+
+@keyframes isla-entra {
+  from { opacity: 0; transform: translateX(-50%) translateY(-1rem) scale(0.9); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 
 .isla__btn {
@@ -686,6 +727,10 @@ useSeo({
   white-space: nowrap;
 }
 
+.isla__btn:active {
+  transform: scale(0.96);
+}
+
 .isla__badge {
   background: var(--primary);
   color: #fff;
@@ -694,17 +739,53 @@ useSeo({
   height: 20px;
   padding-inline: 6px;
   font-size: 0.72rem;
+  font-weight: 800;
   display: grid;
   place-items: center;
 }
 
 .isla__count {
+  display: grid;
+  place-items: center;
+  line-height: 1;
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
   border-radius: 999px;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.8rem;
-  font-weight: 700;
+  padding: 0.32rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.isla__count small {
+  font-size: 0.58rem;
+  font-weight: 600;
+  opacity: 0.7;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Hoja de filtros (solo móvil) ── */
+.hoja__barra,
+.hoja__pie {
+  display: none;
+}
+
+.hoja__fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: rgba(42, 30, 38, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.fondo-enter-active,
+.fondo-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fondo-enter-from,
+.fondo-leave-to {
+  opacity: 0;
 }
 
 @media (max-width: 900px) {
@@ -717,22 +798,77 @@ useSeo({
     display: flex;
   }
 
+  /* El panel deja de vivir en la rejilla: pasa a ser una hoja sobre todo lo
+     demás. Antes era sticky y los productos se le desplazaban por encima. */
   .filters {
-    display: none;
-    position: sticky;
-    top: 90px;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 70;
+    max-height: 88vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 1.4rem 1.4rem 0 0;
+    border: none;
+    padding: 0 1.25rem 0;
+    gap: 1.2rem;
+    box-shadow: 0 -12px 40px rgba(42, 30, 38, 0.28);
+    transform: translateY(100%);
+    transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.08);
+    display: grid;
   }
 
-  /* Al abrirse, el panel deja sitio a la isla para que no la tape */
   .filters--open {
+    transform: translateY(0);
+  }
+
+  /* Asa superior, como las hojas del sistema */
+  .hoja__barra {
     display: grid;
-    max-height: 70vh;
-    overflow-y: auto;
-    padding-bottom: 4.5rem;
+    place-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #fff;
+    padding: 0.7rem 0 0.2rem;
+  }
+
+  .hoja__asa {
+    width: 42px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--line);
+  }
+
+  .filters__head {
+    position: sticky;
+    top: 2.2rem;
+    z-index: 2;
+    background: #fff;
+    padding-bottom: 0.6rem;
+    font-size: 1.05rem;
+  }
+
+  /* Salida evidente: un botón que dice exactamente qué va a pasar */
+  .hoja__pie {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, #fff 72%, rgba(255, 255, 255, 0));
+    padding: 0.9rem 0 1.1rem;
+    margin-top: -0.4rem;
+  }
+
+  .hoja__ver {
+    width: 100%;
+    justify-content: center;
+    font-size: 1rem;
   }
 
   .results {
-    padding-bottom: 5rem;
+    padding-bottom: 1rem;
   }
 }
 
