@@ -66,12 +66,26 @@ const submit = async () => {
       await navigateTo(route.query.next)
       return
     }
-    await loadOrders()
   } catch (e: any) {
-    error.value =
-      e?.message?.includes("Invalid") || e?.message?.includes("credenciales")
-        ? "Correo o contraseña incorrectos."
-        : e?.message ?? "No se pudo completar. Intenta de nuevo."
+    const msg = e?.message ?? ""
+    if (/invalid|unauthor|credential/i.test(msg)) {
+      error.value = config.public.googleAuthEnabled
+        ? "Correo o contraseña incorrectos. Si creaste tu cuenta con Google, entra con el botón de Google."
+        : "Correo o contraseña incorrectos."
+    } else if (/exists|already/i.test(msg)) {
+      error.value = "Ya existe una cuenta con ese correo. Inicia sesión en vez de registrarte."
+    } else {
+      error.value = msg || "No se pudo completar. Intenta de nuevo."
+    }
+    return
+  }
+
+  // Los pedidos se cargan aparte: si fallan, la sesión ya está iniciada y no
+  // tiene sentido mostrar un error de acceso.
+  try {
+    await loadOrders()
+  } catch {
+    ordersLoaded.value = true
   }
 }
 
