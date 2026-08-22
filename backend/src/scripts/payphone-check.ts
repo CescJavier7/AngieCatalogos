@@ -3,32 +3,18 @@ import { ExecArgs } from "@medusajs/framework/types"
 /**
  * Comprueba las credenciales de PayPhone antes de tocar el checkout.
  *
- * Su documentación no aclara cuál de los identificadores del panel es el
- * storeId, así que se puede pasar uno distinto como argumento para probarlos
- * sin editar el .env:
+ * Su documentación no publica el formato del storeId ni de dónde sale, y su
+ * servidor responde 500 en vez de un error limpio cuando no le gusta. Por eso
+ * el script prueba varios candidatos en una sola pasada y dice cuál funciona.
  *
- *   medusa exec ./src/scripts/payphone-check.js               (usa el del .env)
- *   medusa exec ./src/scripts/payphone-check.js OTRO_STORE_ID
+ *   medusa exec ./src/scripts/payphone-check.js                 (el del .env)
+ *   medusa exec ./src/scripts/payphone-check.js ID1 ID2 ID3      (candidatos)
  *
  * Nunca imprime el token.
  */
 const API = "https://pay.payphonetodoesposible.com/api/button/Prepare"
 
-export default async function payphoneCheck({ args }: ExecArgs) {
-  const token = process.env.PAYPHONE_TOKEN
-  const storeId = args?.[0] || process.env.PAYPHONE_STORE_ID
-
-  if (!token || !storeId) {
-    console.log("✗ Falta configuración:")
-    console.log(`   PAYPHONE_TOKEN    ${token ? "presente" : "AUSENTE"}`)
-    console.log(`   PAYPHONE_STORE_ID ${storeId || "AUSENTE"}`)
-    return
-  }
-
-  console.log(`Token: presente (${token.length} caracteres)`)
-  console.log(`Store: ${storeId}${args?.[0] ? "  (pasado por argumento)" : "  (del .env)"}`)
-
-  // $1.00 = 100 centavos. Sin impuesto: amount = amountWithoutTax
+const probar = async (token: string, storeId: string) => {
   const cuerpo = {
     amount: 100,
     amountWithoutTax: 100,
@@ -36,7 +22,7 @@ export default async function payphoneCheck({ args }: ExecArgs) {
     tax: 0,
     service: 0,
     tip: 0,
-    clientTransactionId: `PRUEBA-${Date.now()}`,
+    clientTransactionId: `PRUEBA-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     storeId,
     currency: "USD",
     reference: "Prueba de credenciales",
@@ -44,11 +30,8 @@ export default async function payphoneCheck({ args }: ExecArgs) {
     cancellationUrl: "https://tienda.cescjavier.dev/checkout",
   }
 
-  console.log("\nEnviando Prepare de prueba por $1.00…\n")
-
-  let res: Response
   try {
-    res = await fetch(API, {
+    const res = await fetch(API, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -56,58 +39,74 @@ export default async function payphoneCheck({ args }: ExecArgs) {
       },
       body: JSON.stringify(cuerpo),
     })
-  } catch (e: any) {
-    console.log(`✗ No se pudo contactar con PayPhone: ${e.message}`)
-    return
-  }
-
-  const texto = await res.text()
-  let datos: any
-  try {
-    datos = JSON.parse(texto)
-  } catch {
-    datos = null
-  }
-
-  if (res.ok && datos?.paymentId) {
-    console.log("✓ CREDENCIALES CORRECTAS")
-    console.log(`   storeId válido: ${storeId}`)
-    console.log(`   paymentId: ${datos.paymentId}`)
-    console.log(`   Pagar con tarjeta:  ${datos.payWithCard}`)
-    console.log(`   Pagar con PayPhone: ${datos.payWithPayPhone}`)
-    console.log("\n   Ábrelos en el navegador: el primero es el formulario de")
-    console.log("   tarjeta y el segundo el pago por app/QR. Caducan en 10 min.")
-    if (args?.[0]) {
-      console.log(`\n   → Pon este valor en PAYPHONE_STORE_ID del .env.prod`)
+    const texto = await res.text()
+    let datos: any = null
+    try {
+      datos = JSON.parse(texto)
+    } catch {
+      /* respuesta HTML */
     }
+    return { status: res.status, datos, esHtml: texto.trim().startsWith("<") }
+  } catch (e: any) {
+    return { status: 0, datos: { message: e.message }, esHtml: false }
+  }
+}
+
+export default async function payphoneCheck({ args }: ExecArgs) {
+  const token = process.env.PAYPHONE_TOKEN
+  if (!token) {
+    console.log("✗ Falta PAYPHONE_TOKEN en el entorno.")
+    return
+  }
+  console.log(`Token: presente (${token.length} caracteres)\n`)
+
+  const candidatos = args?.length
+    ? args
+    : [process.env.PAYPHONE_STORE_ID].filter(Boolean) as string[]
+
+  if (!candidatos.length) {
+    console.log("✗ No hay ningún storeId que probar.")
+    console.log("   Pásalos como argumentos o define PAYPHONE_STORE_ID.")
     return
   }
 
-  console.log(`✗ PayPhone respondió ${res.status} ${res.statusText}`)
-  const esHtml = texto.trim().startsWith("<")
-  if (datos) {
-    console.log(JSON.stringify(datos, null, 2).slice(0, 900))
-  } else {
-    console.log(`   (respuesta HTML, no JSON — ${texto.length} caracteres)`)
+  let ganador: { storeId: string; datos: any } | null = null
+
+  for (const storeId of candidatos) {
+    process.stdout.write(`  probando ${storeId.padEnd(36)} `)
+    const r = await probar(token, storeId)
+
+    if (r.status === 200 && r.datos?.paymentId) {
+      console.log("✓ FUNCIONA")
+      ganador = { storeId, datos: r.datos }
+      break
+    }
+    if (r.status === 401) {
+      console.log("401 — el token no autoriza este recurso")
+    } else if (r.esHtml || r.status === 500) {
+      console.log("500 — su servidor revienta (storeId no reconocido)")
+    } else {
+      const m = r.datos?.errors?.[0]?.errorDescriptions?.[0] ?? r.datos?.message ?? ""
+      console.log(`${r.status} ${String(m).slice(0, 60)}`)
+    }
   }
 
-  console.log("\nDiagnóstico:")
-  if (res.status === 401) {
-    console.log("   El token no es válido o no corresponde a esta aplicación.")
-    console.log("   Cópialo de nuevo desde PayPhone Developer → Credenciales.")
-  } else if (res.status === 400 && datos?.errorCode === 800) {
-    console.log("   Validación rechazada: revisa el detalle de arriba.")
-    console.log("   Si menciona storeId, prueba con el otro identificador.")
-  } else if (res.status === 500 || esHtml) {
-    console.log("   Error interno de PayPhone, no un rechazo de validación.")
-    console.log("   La causa más probable es que el storeId no sea el correcto:")
-    console.log("   su servidor revienta en vez de responder un error limpio.")
-    console.log("\n   Prueba con el otro identificador del panel:")
-    console.log("     medusa exec ./src/scripts/payphone-check.js EL_OTRO_ID")
-    console.log("\n   Y confirma en PayPhone Developer que exista una pestaña")
-    console.log("   'Credenciales' con un campo llamado StoreID: puede ser un")
-    console.log("   valor distinto a los de la pantalla de configuración.")
-  } else {
-    console.log("   Respuesta inesperada. Guarda esta salida para soporte.")
+  if (!ganador) {
+    console.log("\n✗ Ningún candidato funcionó.")
+    console.log("\nLo que ya sabemos con certeza:")
+    console.log("   · El token es válido: si no lo fuera, PayPhone respondería")
+    console.log("     401 con un mensaje claro, no 500.")
+    console.log("   · El 500 ocurre DESPUÉS de autenticar, al procesar el pedido.")
+    console.log("\nQueda preguntarle a soporte de dónde sale el storeId de tu")
+    console.log("aplicación y si el tipo Web tiene acceso a api/button/Prepare.")
+    return
   }
+
+  console.log(`\n✓ STORE ID CORRECTO: ${ganador.storeId}`)
+  console.log(`   paymentId: ${ganador.datos.paymentId}`)
+  console.log(`   Pagar con tarjeta:  ${ganador.datos.payWithCard}`)
+  console.log(`   Pagar con PayPhone: ${ganador.datos.payWithPayPhone}`)
+  console.log("\n   El segundo enlace es el pago por app y QR: sale del mismo")
+  console.log("   llamado, no hay que integrar nada aparte. Caducan en 10 min.")
+  console.log(`\n   → Pon PAYPHONE_STORE_ID=${ganador.storeId} en .env.prod`)
 }
