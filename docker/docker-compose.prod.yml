@@ -82,6 +82,10 @@ services:
       # Sincronización con Google Sheets (opcional)
       GOOGLE_SA_KEY_FILE: ${GOOGLE_SA_KEY_FILE:-}
       GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID:-}
+      # Pasarela de pago PayPhone. El ambiente (pruebas/producción) se elige
+      # en el panel de PayPhone Developer, no desde aquí.
+      PAYPHONE_TOKEN: ${PAYPHONE_TOKEN:-}
+      PAYPHONE_STORE_ID: ${PAYPHONE_STORE_ID:-}
     volumes:
       # JSON de la cuenta de servicio (colocarlo junto al .env.prod)
       - ./google-sa.json:/app/google-sa.json:ro
