@@ -5,7 +5,7 @@ useSeo({
     "Cómo Angie Catálogos trata tus datos personales conforme a la Ley Orgánica de Protección de Datos Personales del Ecuador.",
 })
 
-const actualizado = "1 de agosto de 2026"
+const actualizado = "22 de agosto de 2026"
 </script>
 
 <template>
@@ -37,8 +37,8 @@ const actualizado = "1 de agosto de 2026"
         </tr>
         <tr>
           <td>Cédula, teléfono y dirección</td>
-          <td>Emitir la guía de envío y entregarte el pedido</td>
-          <td>Ejecución del contrato</td>
+          <td>Emitir la guía de envío, procesar el pago con tarjeta y emitir el comprobante de venta</td>
+          <td>Ejecución del contrato y obligación legal</td>
         </tr>
         <tr>
           <td>Historial de pedidos</td>
@@ -61,10 +61,13 @@ const actualizado = "1 de agosto de 2026"
     <h2>Con quién los compartimos</h2>
     <p>
       Solo con quienes hacen falta para que recibas tu pedido: la empresa de
-      transporte que lleva el paquete y, cuando esté disponible, la pasarela que
-      procese tu pago con tarjeta. No vendemos ni cedemos tus datos a terceros
-      con fines publicitarios. Nuestros servidores están alojados en
-      infraestructura de DigitalOcean.
+      transporte que lleva el paquete y <strong>PayPhone</strong>, la pasarela
+      que procesa los pagos con tarjeta. A PayPhone se le envían tu nombre,
+      correo, teléfono y número de cédula, porque su normativa exige los datos
+      reales del titular de la tarjeta; los datos de la tarjeta los recoge
+      directamente su plataforma y nunca pasan por nuestros servidores. No
+      vendemos ni cedemos tus datos a terceros con fines publicitarios. Nuestros
+      servidores están alojados en infraestructura de DigitalOcean.
     </p>
 
     <h2>Cuánto tiempo los guardamos</h2>

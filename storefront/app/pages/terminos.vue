@@ -5,7 +5,7 @@ useSeo({
     "Condiciones de compra, envío, devoluciones y del plan de referidos de Angie Catálogos.",
 })
 
-const actualizado = "1 de agosto de 2026"
+const actualizado = "22 de agosto de 2026"
 </script>
 
 <template>
@@ -47,10 +47,31 @@ const actualizado = "1 de agosto de 2026"
 
     <h2>Pagos</h2>
     <p>
-      Por ahora el pago se coordina contigo por WhatsApp, mediante transferencia
-      o contra entrega. Cuando habilitemos el pago con tarjeta, se procesará a
-      través de una pasarela autorizada; nosotros no almacenamos los datos de tu
-      tarjeta en ningún momento.
+      Puedes pagar con <strong>tarjeta de crédito o débito</strong> a través de
+      PayPhone, una pasarela autorizada para operar en Ecuador. El cobro se
+      realiza en su plataforma: <strong>nosotros no vemos ni almacenamos en
+      ningún momento los datos de tu tarjeta</strong>. También puedes coordinar
+      el pago con nosotros por WhatsApp, mediante transferencia bancaria o
+      contra entrega.
+    </p>
+    <p>
+      <strong>El precio es el mismo pagues como pagues.</strong> No cobramos
+      ningún recargo, comisión ni "costo por servicio" por usar tarjeta: la
+      comisión de la pasarela la asume íntegramente la tienda, tal como exige la
+      normativa ecuatoriana. Si alguna vez ves un cobro adicional por pagar con
+      tarjeta, avísanos, porque sería un error nuestro.
+    </p>
+    <p>
+      Al confirmar tu pedido serás llevado a la plataforma de PayPhone y, una vez
+      completado el pago, regresarás automáticamente a la tienda con el
+      comprobante de tu compra. Si el pago no se completa, el pedido queda sin
+      confirmar y no se te cobra nada.
+    </p>
+    <p>
+      Por cada compra emitimos el comprobante de venta que corresponde conforme a
+      la normativa del Servicio de Rentas Internas, a nombre de los datos que nos
+      proporciones en el checkout. Por eso te pedimos tu cédula: es un requisito
+      tanto de la transportadora como de la emisión del comprobante.
     </p>
 
     <h2>Cambios y devoluciones</h2>
@@ -60,6 +81,13 @@ const actualizado = "1 de agosto de 2026"
       sin usar y en su empaque original. Si llega defectuoso o equivocado, nos
       hacemos cargo del cambio y del costo de envío. Por higiene, los perfumes y
       cosméticos abiertos solo se aceptan si presentan defecto de fábrica.
+    </p>
+    <p>
+      Cuando corresponda una devolución de dinero y hayas pagado con tarjeta, el
+      reembolso se realiza <strong>a la misma tarjeta</strong> con la que
+      pagaste; no se entrega en efectivo ni por transferencia. El tiempo en que
+      se refleje depende de tu banco emisor, no de nosotros, y suele tardar entre
+      unos días y un ciclo de facturación.
     </p>
 
     <h2>Plan "Invita y gana"</h2>
