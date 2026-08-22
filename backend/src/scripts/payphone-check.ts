@@ -60,9 +60,11 @@ export default async function payphoneCheck({ args }: ExecArgs) {
   }
   console.log(`Token: presente (${token.length} caracteres)\n`)
 
-  const candidatos = args?.length
-    ? args
-    : [process.env.PAYPHONE_STORE_ID].filter(Boolean) as string[]
+  // A texto siempre: medusa exec entrega un argumento numérico como número,
+  // y entonces cualquier método de cadena revienta.
+  const candidatos = (
+    args?.length ? args : [process.env.PAYPHONE_STORE_ID].filter(Boolean)
+  ).map((c) => String(c))
 
   if (!candidatos.length) {
     console.log("✗ No hay ningún storeId que probar.")
