@@ -3,68 +3,64 @@ import { ExecArgs } from "@medusajs/framework/types"
 /**
  * Comprueba las credenciales de PayPhone antes de tocar el checkout.
  *
- * Su documentación no publica el formato del storeId ni de dónde sale, y su
- * servidor responde 500 en vez de un error limpio cuando no le gusta. Por eso
- * el script prueba varios candidatos en una sola pasada y dice cuál funciona.
+ * Dos aprendizajes que costaron caro:
  *
- *   medusa exec ./src/scripts/payphone-check.js                 (el del .env)
- *   medusa exec ./src/scripts/payphone-check.js ID1 ID2 ID3      (candidatos)
+ *  · Su API vive tras un WAF delante de IIS/.NET. Sin un User-Agent de
+ *    navegador responde HTML en vez de JSON, y el error real queda oculto.
+ *
+ *  · El storeId se OMITE cuando el comercio tiene una sola tienda: el token
+ *    ya trae la suya. Enviar uno que no le corresponde hace que su servidor
+ *    reviente en lugar de devolver un error legible.
+ *
+ *   medusa exec ./src/scripts/payphone-check.js            (sin storeId)
+ *   medusa exec ./src/scripts/payphone-check.js ID1 ID2    (además, con cada uno)
  *
  * Nunca imprime el token.
  */
 const API = "https://pay.payphonetodoesposible.com/api/button/Prepare"
 
-/** Dos formas del cuerpo: mínima (solo lo obligatorio) y completa. */
-const cuerpos = (storeId: string) => {
-  const id = `PRUEBA-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-  return [
-    {
-      nombre: "mínimo",
-      datos: {
-        amount: 100,
-        amountWithoutTax: 100,
-        clientTransactionId: id,
-        storeId,
-        responseUrl: "https://tienda.cescjavier.dev/pedido/confirmacion",
-      },
-    },
-    {
-      nombre: "completo",
-      datos: {
-        amount: 100,
-        amountWithoutTax: 100,
-        amountWithTax: 0,
-        tax: 0,
-        service: 0,
-        tip: 0,
-        clientTransactionId: id + "-B",
-        storeId,
-        currency: "USD",
-        reference: "Prueba de credenciales",
-        responseUrl: "https://tienda.cescjavier.dev/pedido/confirmacion",
-        cancellationUrl: "https://tienda.cescjavier.dev/checkout",
-      },
-    },
-  ]
+const cabeceras = (token: string) => ({
+  Authorization: `Bearer ${token}`,
+  "Content-Type": "application/json",
+  Accept: "application/json",
+  // Imprescindible: su WAF bloquea agentes que no parecen navegador
+  "User-Agent":
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+})
+
+/** El desglose completo con ceros: amount debe ser la suma exacta. */
+const cuerpo = (storeId?: string) => {
+  const base: Record<string, unknown> = {
+    amount: 100,
+    amountWithoutTax: 100,
+    amountWithTax: 0,
+    tax: 0,
+    service: 0,
+    tip: 0,
+    currency: "USD",
+    clientTransactionId: `PRUEBA-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    reference: "Prueba de credenciales",
+    responseUrl: "https://tienda.cescjavier.dev/pedido/confirmacion",
+  }
+  // La clave no debe existir si no hay storeId, no basta con dejarla vacía
+  if (storeId) base.storeId = storeId
+  return base
 }
 
-const probar = async (token: string, cuerpo: any) => {
-
+const probar = async (token: string, storeId?: string) => {
   try {
     const res = await fetch(API, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(cuerpo),
+      headers: cabeceras(token),
+      body: JSON.stringify(cuerpo(storeId)),
     })
     const texto = await res.text()
     let datos: any = null
     try {
       datos = JSON.parse(texto)
     } catch {
-      /* respuesta HTML */
+      /* HTML: el WAF o un error interno */
     }
     return { status: res.status, datos, esHtml: texto.trim().startsWith("<") }
   } catch (e: any) {
@@ -78,67 +74,55 @@ export default async function payphoneCheck({ args }: ExecArgs) {
     console.log("✗ Falta PAYPHONE_TOKEN en el entorno.")
     return
   }
-  console.log(`Token: presente (${token.length} caracteres)\n`)
+  console.log(`Token: presente (${token.length} caracteres)`)
+  console.log("User-Agent de navegador: sí (obligatorio por su WAF)\n")
 
-  // A texto siempre: medusa exec entrega un argumento numérico como número,
-  // y entonces cualquier método de cadena revienta.
-  const candidatos = (
-    args?.length ? args : [process.env.PAYPHONE_STORE_ID].filter(Boolean)
-  ).map((c) => String(c))
+  // Sin storeId primero: es el camino correcto con una sola tienda
+  const intentos: { etiqueta: string; storeId?: string }[] = [
+    { etiqueta: "SIN storeId (recomendado)" },
+    ...(args ?? []).map((a) => ({ etiqueta: String(a), storeId: String(a) })),
+  ]
 
-  if (!candidatos.length) {
-    console.log("✗ No hay ningún storeId que probar.")
-    console.log("   Pásalos como argumentos o define PAYPHONE_STORE_ID.")
-    return
-  }
+  let ganador: { etiqueta: string; storeId?: string; datos: any } | null = null
 
-  let ganador: { storeId: string; datos: any } | null = null
+  for (const intento of intentos) {
+    process.stdout.write(`  ${intento.etiqueta.padEnd(34)} `)
+    const r = await probar(token, intento.storeId)
 
-  for (const storeId of candidatos) {
-    for (const { nombre, datos } of cuerpos(storeId)) {
-      process.stdout.write(`  ${storeId.padEnd(34)} cuerpo ${nombre.padEnd(9)} `)
-      const r = await probar(token, datos)
-
-      if (r.status === 200 && r.datos?.paymentId) {
-        console.log("✓ FUNCIONA")
-        ganador = { storeId, datos: r.datos }
-        break
-      }
-      if (r.status === 401) {
-        console.log("401 — el token no autoriza este recurso")
-      } else if (r.esHtml || r.status === 500) {
-        console.log("500 — su servidor revienta")
-      } else {
-        const m = r.datos?.errors?.[0]?.errorDescriptions?.[0] ?? r.datos?.message ?? ""
-        console.log(`${r.status} ${String(m).slice(0, 55)}`)
-      }
+    if (r.status === 200 && r.datos?.paymentId) {
+      console.log("✓ FUNCIONA")
+      ganador = { ...intento, datos: r.datos }
+      break
     }
-    if (ganador) break
+    if (r.esHtml) {
+      console.log(`${r.status} — respuesta HTML (WAF o error interno)`)
+    } else {
+      const m =
+        r.datos?.errors?.[0]?.errorDescriptions?.[0] ??
+        r.datos?.message ??
+        JSON.stringify(r.datos ?? {}).slice(0, 60)
+      console.log(`${r.status} — ${String(m).slice(0, 62)}`)
+    }
   }
 
   if (!ganador) {
-    console.log("\n✗ Ningún candidato funcionó.")
-    console.log("\nLo que ya sabemos con certeza:")
-    console.log("   · El token es válido: si no lo fuera, PayPhone respondería")
-    console.log("     401 con un mensaje claro, no 500.")
-    console.log("   · El 500 ocurre DESPUÉS de autenticar, al procesar el pedido.")
-    console.log("   · No es el cuerpo: fallan tanto el mínimo como el completo.")
-    console.log("   · No es el storeId: fallan todos los candidatos por igual.")
-    console.log("\nLo más probable es el TIPO DE APLICACIÓN. Su documentación dice")
-    console.log("que la Cajita de Pagos es 'exclusivamente para entornos WEB',")
-    console.log("o sea que el tipo Web es para el widget del navegador, no para")
-    console.log("llamadas de servidor como esta.")
-    console.log("\n→ Crea en PayPhone Developer una aplicación de tipo API,")
-    console.log("  copia SU token a PAYPHONE_TOKEN en .env.prod y vuelve a")
-    console.log("  ejecutar este script. No hace falta borrar la aplicación Web.")
+    console.log("\n✗ Ningún intento funcionó.")
+    console.log("\nSi ahora ves un error en JSON en vez de HTML, ya es progreso:")
+    console.log("significa que el User-Agent resolvió lo del WAF y PayPhone")
+    console.log("por fin está explicando qué le molesta. Pégame ese mensaje.")
     return
   }
 
-  console.log(`\n✓ STORE ID CORRECTO: ${ganador.storeId}`)
+  console.log(`\n✓ PREPARE CORRECTO — ${ganador.etiqueta}`)
   console.log(`   paymentId: ${ganador.datos.paymentId}`)
   console.log(`   Pagar con tarjeta:  ${ganador.datos.payWithCard}`)
   console.log(`   Pagar con PayPhone: ${ganador.datos.payWithPayPhone}`)
-  console.log("\n   El segundo enlace es el pago por app y QR: sale del mismo")
-  console.log("   llamado, no hay que integrar nada aparte. Caducan en 10 min.")
-  console.log(`\n   → Pon PAYPHONE_STORE_ID=${ganador.storeId} en .env.prod`)
+  console.log("\n   El segundo es el pago por app y QR: sale del mismo llamado,")
+  console.log("   no hay que integrar nada aparte. Caducan en 10 minutos.")
+  if (!ganador.storeId) {
+    console.log("\n   → Deja PAYPHONE_STORE_ID vacío en .env.prod: con una sola")
+    console.log("     tienda, el token ya sabe cuál es.")
+  } else {
+    console.log(`\n   → PAYPHONE_STORE_ID=${ganador.storeId}`)
+  }
 }
