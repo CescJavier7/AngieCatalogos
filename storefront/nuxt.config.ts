@@ -1,5 +1,7 @@
 /** Dominio público: base de las URL canónicas, del sitemap y de las imágenes sociales. */
 const SITE_URL = process.env.NUXT_PUBLIC_SITE_URL || "https://tienda.cescjavier.dev"
+/** Origen de la API: la política de contenido debe permitirlo explícitamente. */
+const SITE_API = process.env.NUXT_PUBLIC_MEDUSA_URL || "http://localhost:9000"
 
 export default defineNuxtConfig({
   compatibilityDate: "2026-07-24",
@@ -41,6 +43,41 @@ export default defineNuxtConfig({
           href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Urbanist:wght@400;500;600;700;800&display=swap",
         },
       ],
+    },
+  },
+
+  /**
+   * Cabeceras de seguridad. La tienda no enviaba ninguna: sin ellas el sitio
+   * puede embeberse en un iframe ajeno para engañar a la clienta, el navegador
+   * adivina tipos de contenido, y la URL completa viaja como referente a
+   * terceros.
+   *
+   * La política de contenido es permisiva con las imágenes a propósito: las
+   * fotos de producto vienen de dominios que se escriben en la hoja de Google
+   * y no se pueden enumerar de antemano.
+   */
+  routeRules: {
+    "/**": {
+      headers: {
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+        "Content-Security-Policy": [
+          "default-src 'self'",
+          "base-uri 'self'",
+          "frame-ancestors 'none'",
+          "object-src 'none'",
+          "img-src 'self' data: https:",
+          "font-src 'self' https://fonts.gstatic.com",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+          "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
+          `connect-src 'self' ${SITE_API} https://cloudflareinsights.com`,
+          "form-action 'self' https://pay.payphonetodoesposible.com",
+          "upgrade-insecure-requests",
+        ].join("; "),
+      },
     },
   },
 
