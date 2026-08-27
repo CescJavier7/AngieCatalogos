@@ -34,11 +34,14 @@ onMounted(() => {
 })
 onUnmounted(() => window.removeEventListener("keydown", alTeclado))
 
-/** Enlace del catálogo con un filtro ya puesto. */
-const filtro = (clave: string, valor: string) => ({
-  path: "/catalogo",
-  query: { [clave]: valor },
-})
+/**
+ * Enlace a la página propia de una categoría o marca.
+ *
+ * Antes esto apuntaba a /catalogo?tipo=X. Se cambió porque Google no indexa
+ * los parámetros como páginas distintas: sin URL propia no hay forma de
+ * posicionar la tienda por "perfumes".
+ */
+const enlaceCategoria = (nombre: string) => `/categoria/${aSlug(nombre)}`
 </script>
 
 <template>
@@ -136,7 +139,7 @@ const filtro = (clave: string, valor: string) => ({
               <h3>Comprar por producto</h3>
               <ul>
                 <li v-for="t in menu.tipos" :key="t">
-                  <NuxtLink :to="filtro('tipo', t)">{{ t }}</NuxtLink>
+                  <NuxtLink :to="enlaceCategoria(t)">{{ t }}</NuxtLink>
                 </li>
               </ul>
             </div>
@@ -145,7 +148,7 @@ const filtro = (clave: string, valor: string) => ({
               <h3>Para quién</h3>
               <ul>
                 <li v-for="a in menu?.publico ?? []" :key="a">
-                  <NuxtLink :to="filtro('publico', a)">{{ a }}</NuxtLink>
+                  <NuxtLink :to="enlaceCategoria(a)">{{ a }}</NuxtLink>
                 </li>
                 <li>
                   <NuxtLink :to="{ path: '/catalogo', query: { promo: '1' } }" class="menu__destacado">

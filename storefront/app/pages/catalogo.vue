@@ -47,6 +47,16 @@ const typeCats = computed(() =>
   [...usedCategories.value].filter((c) => !AUDIENCE_CATS.includes(c)).sort()
 )
 
+/**
+ * Categorías y marcas con página propia, para enlazarlas desde aquí. Salen
+ * del catálogo ya cargado, así que no cuestan una consulta extra.
+ */
+const secciones = computed(() => [
+  ...typeCats.value,
+  ...audienceCats.value,
+  ...allBrands.value,
+])
+
 const priceBounds = computed(() => {
   const prices = (products.value ?? []).map(priceOf)
   if (!prices.length) return { min: 0, max: 100 }
@@ -246,6 +256,23 @@ useSeo({
       </div>
     </header>
 
+    <!--
+      Enlaces a las páginas de categoría, servidos ya en el HTML.
+      El menú del encabezado también lleva a ellas, pero se pinta solo después
+      de un clic: Googlebot no lo abre nunca. Sin estos enlaces, esas páginas
+      solo se descubrirían por el sitemap, que pesa mucho menos.
+    -->
+    <nav v-if="secciones.length" class="secciones" aria-label="Categorías">
+      <NuxtLink
+        v-for="s in secciones"
+        :key="s"
+        :to="`/categoria/${aSlug(s)}`"
+        class="secciones__chip"
+      >
+        {{ s }}
+      </NuxtLink>
+    </nav>
+
     <div class="catalog-page__layout">
       <!-- ── Sidebar de filtros ── -->
       <aside class="filters" :class="{ 'filters--open': filtersOpen }">
@@ -433,6 +460,29 @@ useSeo({
   max-width: 52ch;
   color: var(--muted);
   font-size: 0.95rem;
+}
+
+.secciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.secciones__chip {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radio-full);
+  background: var(--card);
+  font-size: 0.86rem;
+  font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.secciones__chip:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .catalog-page__toggle {

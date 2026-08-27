@@ -88,6 +88,46 @@ useSeo({
   image: product.value?.thumbnail || undefined,
 })
 
+/**
+ * Migas hasta la categoría del producto. Google las pinta en lugar de la URL
+ * cruda, y de paso le enseña que la categoría es una página con entidad
+ * propia, no un callejón sin salida.
+ */
+const categoriaPrincipal = computed(() => {
+  const cats = ((product.value as any)?.categories ?? []) as any[]
+  return cats.find((c) => !AUDIENCE_CATS.includes(c.name)) ?? cats[0] ?? null
+})
+
+useJsonLd({
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Inicio", item: cfg.siteUrl },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Catálogo",
+      item: `${cfg.siteUrl}/catalogo`,
+    },
+    ...(categoriaPrincipal.value
+      ? [
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: categoriaPrincipal.value.name,
+            item: `${cfg.siteUrl}/categoria/${aSlug(categoriaPrincipal.value.name)}`,
+          },
+        ]
+      : []),
+    {
+      "@type": "ListItem",
+      position: categoriaPrincipal.value ? 4 : 3,
+      name: product.value?.title,
+      item: `${cfg.siteUrl}/productos/${product.value?.handle}`,
+    },
+  ],
+})
+
 // Ficha de producto para Google: precio, moneda y disponibilidad
 useJsonLd({
   "@context": "https://schema.org",

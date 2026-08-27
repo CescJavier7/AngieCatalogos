@@ -14,17 +14,43 @@ export default defineEventHandler(async (event) => {
   ]
 
   try {
-    const res = await $fetch<{ products: { handle: string }[] }>(
+    type Producto = {
+      handle: string
+      categories?: { name: string }[]
+      collection?: { title: string } | null
+    }
+    const res = await $fetch<{ products: Producto[] }>(
       `${cfg.medusaUrl}/store/products`,
       {
-        params: { limit: 500, fields: "handle" },
+        params: {
+          limit: 500,
+          fields: "handle,categories.name,collection.title",
+        },
         headers: { "x-publishable-api-key": cfg.medusaPublishableKey },
       }
     )
+
+    // Las páginas de categoría y marca salen del propio catálogo: una
+    // categoría nueva en la hoja aparece aquí sola, sin tocar código
+    const secciones = new Set<string>()
+
     for (const p of res.products ?? []) {
       urls.push({
         loc: `${cfg.siteUrl}/productos/${p.handle}`,
         priority: "0.7",
+        changefreq: "weekly",
+      })
+      for (const c of p.categories ?? []) {
+        if (c?.name) secciones.add(c.name)
+      }
+      if (p.collection?.title) secciones.add(p.collection.title)
+    }
+
+    for (const nombre of [...secciones].sort()) {
+      urls.push({
+        // Por encima de la ficha suelta: son las que se buscan en Google
+        loc: `${cfg.siteUrl}/categoria/${aSlug(nombre)}`,
+        priority: "0.8",
         changefreq: "weekly",
       })
     }
