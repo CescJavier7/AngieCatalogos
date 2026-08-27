@@ -15,6 +15,13 @@ import https from "node:https"
  *    suma de amountWithoutTax + amountWithTax + tax + service + tip.
  *  · El storeId se OMITE cuando el comercio tiene una sola tienda: el token
  *    ya trae la suya. No basta con dejarlo vacío, la clave no debe existir.
+ *  · phoneNumber NO se manda. Es opcional para ellos pero lo validan, y
+ *    cuando no les cuadra rechazan la transacción ENTERA con "Validaciones
+ *    fallidas". Se probó con 0980441321 —un celular ecuatoriano correcto, en
+ *    el formato de diez dígitos— y lo rechazó igual. Un campo opcional que
+ *    tumba ventas no vale lo que cuesta: el correo ya identifica a quien
+ *    paga. Si algún día PayPhone documenta el formato que espera, este es el
+ *    sitio donde vuelve a entrar.
  */
 
 const HOST = "pay.payphonetodoesposible.com"
@@ -74,7 +81,6 @@ export type PreparePago = {
   urlCancelacion?: string
   /** Datos reales del titular: su normativa los exige, nada ficticio. */
   correo?: string
-  telefono?: string
   documento?: string
 }
 
@@ -84,38 +90,60 @@ export type PrepareRespuesta = {
   payWithPayPhone: string
 }
 
-/** Crea la transacción y devuelve los enlaces de pago (tarjeta y app/QR). */
+/**
+ * Crea la transacción y devuelve los enlaces de pago (tarjeta y app/QR).
+ *
+ * Los datos del titular van en un segundo plato: si PayPhone los rechaza, se
+ * reintenta SIN ellos antes de darse por vencido. Su validador tumba la
+ * transacción entera por un campo opcional que no le gusta, y perder una
+ * venta por adornar el registro de otro es un mal negocio. El aviso queda en
+ * el error de la segunda vuelta si esa también falla.
+ */
 export const prepararPago = async (p: PreparePago) => {
-  const cuerpo: Record<string, unknown> = {
-    amount: p.totalCentavos,
-    amountWithoutTax: p.sinImpuestoCentavos,
-    amountWithTax: p.gravadoCentavos ?? 0,
-    tax: p.impuestoCentavos ?? 0,
-    service: 0,
-    tip: 0,
-    currency: "USD",
-    clientTransactionId: p.referenciaInterna,
-    reference: p.descripcion,
-    responseUrl: p.urlRespuesta,
+  const armar = (conTitular: boolean) => {
+    const cuerpo: Record<string, unknown> = {
+      amount: p.totalCentavos,
+      amountWithoutTax: p.sinImpuestoCentavos,
+      amountWithTax: p.gravadoCentavos ?? 0,
+      tax: p.impuestoCentavos ?? 0,
+      service: 0,
+      tip: 0,
+      currency: "USD",
+      clientTransactionId: p.referenciaInterna,
+      reference: p.descripcion,
+      responseUrl: p.urlRespuesta,
+    }
+    if (p.urlCancelacion) cuerpo.cancellationUrl = p.urlCancelacion
+    if (conTitular && p.correo) cuerpo.email = p.correo
+    if (conTitular && p.documento) cuerpo.documentId = p.documento
+    // storeId se omite: el token ya trae su tienda
+    // phoneNumber tampoco se manda: ver la nota de arriba
+    return cuerpo
   }
-  if (p.urlCancelacion) cuerpo.cancellationUrl = p.urlCancelacion
-  if (p.correo) cuerpo.email = p.correo
-  if (p.telefono) cuerpo.phoneNumber = p.telefono
-  if (p.documento) cuerpo.documentId = p.documento
-  // storeId se omite: el token ya trae su tienda
 
   const suma =
-    (cuerpo.amountWithoutTax as number) +
-    (cuerpo.amountWithTax as number) +
-    (cuerpo.tax as number)
+    p.sinImpuestoCentavos + (p.gravadoCentavos ?? 0) + (p.impuestoCentavos ?? 0)
   if (suma !== p.totalCentavos) {
     throw new Error(
       `El desglose no cuadra: las partes suman ${suma} y el total es ${p.totalCentavos} centavos.`
     )
   }
 
-  const r = await pedir<PrepareRespuesta>("/api/button/Prepare", cuerpo)
+  const intentar = (conTitular: boolean) =>
+    pedir<PrepareRespuesta>("/api/button/Prepare", armar(conTitular))
+
+  let r = await intentar(true)
   if (r.status === 200 && r.datos?.paymentId) return r.datos
+
+  // Segunda vuelta desnuda, solo si había algo opcional que quitar
+  if (p.correo || p.documento) {
+    const sinTitular = await intentar(false)
+    if (sinTitular.status === 200 && sinTitular.datos?.paymentId) {
+      return sinTitular.datos
+    }
+    r = sinTitular
+  }
+
   throw new Error(
     `PayPhone rechazó el Prepare (${r.status}): ${
       r.datos ? JSON.stringify(r.datos) : r.crudo.slice(0, 200)

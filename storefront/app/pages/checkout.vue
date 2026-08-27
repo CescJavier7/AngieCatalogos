@@ -246,9 +246,8 @@ const cedulaValida = (valor: string) => {
  * Celular ecuatoriano normalizado a 09XXXXXXXX, o null si no se reconoce.
  *
  * La gente lo escribe de todas las formas —con +593, con espacios, con
- * guiones— y las dos partes que lo reciben son estrictas: PayPhone rechaza
- * la transacción entera si el número no le cuadra, y la transportadora no
- * puede llamar a un número mal escrito. Se limpia una vez, aquí.
+ * guiones— y quien lo recibe es la transportadora, que no puede llamar a un
+ * número mal copiado. A PayPhone ya no se le manda ninguno.
  */
 const normalizarTelefono = (valor: string) => {
   let d = valor.replace(/\D/g, "")
@@ -358,7 +357,7 @@ const placeOrder = async () => {
   }
   if (!telefonoLimpio.value) {
     error.value =
-      "Revisa tu celular: debe tener 10 dígitos y empezar por 09. Es el número al que te escribimos y con el que se valida el pago."
+      "Revisa tu celular: debe tener 10 dígitos y empezar por 09. Es el número al que te escribimos para coordinar la entrega."
     return
   }
 
@@ -427,8 +426,6 @@ const placeOrder = async () => {
               cart_id: freshCart.id,
               // Su normativa pide el documento del titular cuando se tiene
               documento: (esRetiro.value ? form.retira_cedula : form.cedula).trim(),
-              // El del checkout, no el de la ficha: puede llevar años sin tocarse
-              telefono: telefonoLimpio.value,
             },
           })
       )
