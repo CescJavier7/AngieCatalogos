@@ -9,23 +9,10 @@
  */
 const props = defineProps<{ producto: any }>()
 
-const medusa = useMedusa()
-const { data: region } = await useRegion()
 const { addItem, busy } = useCart()
 
-const { data: candidatos } = await useAsyncData(
-  () => `sugeridos-${props.producto?.id}`,
-  async () => {
-    const { products } = await medusa.store.product.list({
-      limit: 100,
-      region_id: region.value?.id,
-      fields:
-        "id,title,handle,thumbnail,*variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,*categories,*collection,*tags",
-    })
-    return products
-  },
-  { watch: [region, () => props.producto?.id] }
-)
+// Mismo catálogo que la página de la tienda: la consulta se comparte
+const { data: candidatos } = await useCatalogo()
 
 const precioDe = (p: any): number =>
   p.variants?.[0]?.calculated_price?.calculated_amount ?? 0

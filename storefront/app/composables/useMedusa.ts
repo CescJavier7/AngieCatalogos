@@ -15,11 +15,25 @@ export const useMedusa = () => {
   return client
 }
 
-/** Región Ecuador (la única de la tienda), cacheada por sesión. */
+/**
+ * Región Ecuador (la única de la tienda), cacheada por sesión.
+ *
+ * El catálogo la espera antes de pedir los productos, así que sin caché cada
+ * entrada a la tienda pagaba dos viajes al servidor en fila en vez de uno.
+ */
 export const useRegion = () => {
-  return useAsyncData("region", async () => {
-    const medusa = useMedusa()
-    const { regions } = await medusa.store.region.list()
-    return regions[0]
-  })
+  return useAsyncData(
+    "region",
+    async () => {
+      const medusa = useMedusa()
+      const { regions } = await medusa.store.region.list()
+      return regions[0]
+    },
+    {
+      getCachedData: (key, nuxtApp, ctx) =>
+        ctx.cause === "initial"
+          ? nuxtApp.payload.data[key] ?? nuxtApp.static.data[key]
+          : undefined,
+    }
+  )
 }

@@ -79,7 +79,11 @@ type DatosSesion = {
 }
 
 /** Lo que la tienda manda al crear la sesión. La cédula no se guarda. */
-type EntradaTienda = DatosSesion & { session_id?: string; documento?: string }
+type EntradaTienda = DatosSesion & {
+  session_id?: string
+  documento?: string
+  telefono?: string
+}
 
 class PayphoneProviderService extends AbstractPaymentProvider {
   static identifier = "payphone"
@@ -119,6 +123,47 @@ class PayphoneProviderService extends AbstractPaymentProvider {
     return typeof valor === "string" && /^\d{10}$/.test(valor) ? valor : undefined
   }
 
+  /**
+   * Teléfono en el formato que PayPhone acepta, o nada.
+   *
+   * Es un campo opcional para ellos pero validado: un número guardado como
+   * "098 044 1321" o "+593 98 044 1321" hace que rechacen el Prepare entero.
+   * Como cada clienta escribió el suyo a su manera, se normaliza a 09XXXXXXXX
+   * y, si no se reconoce, se omite: mejor sin teléfono que sin pago.
+   */
+  private telefono(valor: unknown) {
+    if (typeof valor !== "string") return undefined
+    let d = valor.replace(/\D/g, "")
+    // Quita el código de país escrito de cualquier manera: +593, 00593, 593
+    if (d.startsWith("00593")) d = d.slice(5)
+    else if (d.startsWith("593")) d = d.slice(3)
+    // Con el país delante, el 0 inicial suele desaparecer: 98... en vez de 098...
+    if (/^9\d{8}$/.test(d)) d = `0${d}`
+    return /^09\d{8}$/.test(d) ? d : undefined
+  }
+
+  /**
+   * Deja pasar el motivo real de PayPhone hasta la tienda.
+   *
+   * Medusa convierte en "An unknown error occurred" cualquier excepción que
+   * no sea un MedusaError con tipo conocido, así que un Error corriente
+   * —por detallado que venga— llega al navegador convertido en nada. Esto lo
+   * vuelve a envolver como INVALID_DATA para que el mensaje sobreviva, y
+   * deja el detalle completo en el log del servidor.
+   */
+  private async conMotivo<T>(que: string, accion: () => Promise<T>): Promise<T> {
+    try {
+      return await accion()
+    } catch (e: any) {
+      const motivo = String(e?.message ?? e)
+      this.logger_.error(`[payphone] Falló al ${que}: ${motivo}`)
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `No pudimos ${que}. PayPhone respondió: ${motivo.slice(0, 240)}`
+      )
+    }
+  }
+
   async initiatePayment(
     input: InitiatePaymentInput
   ): Promise<InitiatePaymentOutput> {
@@ -144,18 +189,25 @@ class PayphoneProviderService extends AbstractPaymentProvider {
     const referencia = this.referencia(carrito)
     const regreso = `${urlTienda()}/pedido/pagando/${carrito}`
 
-    const respuesta = await prepararPago({
-      totalCentavos,
-      ...desglosarImpuesto(totalCentavos),
-      referenciaInterna: referencia,
-      descripcion: "Angie Catálogos",
-      urlRespuesta: regreso,
-      // El mismo destino: sin id en la query, la página lo lee como cancelado
-      urlCancelacion: regreso,
-      correo: input.context?.customer?.email,
-      telefono: input.context?.customer?.phone ?? undefined,
-      documento: this.documento(entrada.documento),
-    })
+    const respuesta = await this.conMotivo(
+      "abrir el pago con tarjeta",
+      () =>
+        prepararPago({
+          totalCentavos,
+          ...desglosarImpuesto(totalCentavos),
+          referenciaInterna: referencia,
+          descripcion: "Angie Catálogos",
+          urlRespuesta: regreso,
+          // El mismo destino: sin id en la query, la página lo lee como cancelado
+          urlCancelacion: regreso,
+          correo: input.context?.customer?.email,
+          // El del checkout manda: el de la ficha puede llevar años sin tocarse
+          telefono:
+            this.telefono(entrada.telefono) ??
+            this.telefono(input.context?.customer?.phone),
+          documento: this.documento(entrada.documento),
+        })
+    )
 
     const datos: DatosSesion = {
       referencia,
@@ -218,9 +270,8 @@ class PayphoneProviderService extends AbstractPaymentProvider {
       )
     }
 
-    const confirmacion = await confirmarPago(
-      datos.transaccionId,
-      datos.referencia
+    const confirmacion = await this.conMotivo("confirmar el pago", () =>
+      confirmarPago(datos.transaccionId!, datos.referencia!)
     )
 
     // 3 = aprobada. Cualquier otra cosa es un pago que no ocurrió

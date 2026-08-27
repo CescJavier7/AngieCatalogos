@@ -76,11 +76,36 @@ El ambiente (pruebas o producción) se elige en el panel de PayPhone Developer:
 cada uno entrega su propio token. Con el de pruebas, sus tarjetas de prueba
 recorren el flujo completo sin mover dinero.
 
+## 4.6. Comprobantes de compra por correo
+El comprobante sale solo cuando el dinero ya entró: al cobrar con tarjeta, o
+al capturar el pago a mano desde el admin (transferencia y contra entrega).
+Sin `SENDGRID_API_KEY` no se envía nada, solo se escribe en el log — útil para
+revisar el diseño antes de contratar el servicio.
+
+```bash
+# Ver cómo queda el comprobante, sin esperar una venta real
+docker exec -it angie-prod-backend npx medusa exec ./src/scripts/factura-vista.ts
+docker cp angie-prod-backend:/app/factura-ejemplo.html .   # abrir en el navegador
+```
+
+Para enviarlos de verdad: crear la cuenta en SendGrid, verificar el remitente
+en **Sender Authentication** (sin eso rechazan todo), y completar en
+`.env.prod`:
+
+```
+SENDGRID_API_KEY=SG.xxxxx
+SENDGRID_FROM=hola@cescjavier.dev
+```
+
+Luego `up -d --build backend`. Un pedido genera un solo comprobante aunque los
+eventos se repitan; si un envío falla, el siguiente intento lo reintenta.
+
 ## 5. Verificar
 - https://tienda-api.cescjavier.dev/health → `OK`
 - https://tienda-api.cescjavier.dev/app → panel admin
 - https://tienda.cescjavier.dev → tienda
 - Checkout → sección "Pago": debe ofrecer tarjeta. Si no sale, falta el paso 4.5
+- Tras una compra pagada: el comprobante llega al correo de la clienta
 
 ## Operación
 - Actualizar: `git pull && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build`

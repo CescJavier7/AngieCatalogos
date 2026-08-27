@@ -25,6 +25,21 @@
   --card: #ffffff;
   --line: #eadfe6;
   --success: #1f8a5b;
+
+  /*
+    Sombras en escalera. Todas tiradas del color de la tinta y no de negro
+    puro: sobre un fondo marfil el gris azulado ensucia, el ciruela no.
+  */
+  --sombra-sutil: 0 1px 2px rgba(42, 30, 38, 0.05);
+  --sombra-card: 0 2px 4px rgba(42, 30, 38, 0.04), 0 12px 28px rgba(42, 30, 38, 0.07);
+  --sombra-alta: 0 8px 16px rgba(42, 30, 38, 0.07), 0 24px 56px rgba(42, 30, 38, 0.13);
+
+  /* Radios con nombre: los números sueltos se desalinean solos con el tiempo */
+  --radio-xs: 0.5rem;
+  --radio-sm: 0.7rem;
+  --radio-md: 1rem;
+  --radio-lg: 1.4rem;
+  --radio-full: 999px;
 }
 
 * {
@@ -51,6 +66,14 @@ h3,
   font-family: "Cormorant Garamond", Georgia, serif;
   font-weight: 600;
   letter-spacing: 0.01em;
+  /* La Cormorant es de trazo fino y alto: apretada se lee mucho mejor */
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+/* Los párrafos cortan mejor por sentido que por ancho exacto */
+p {
+  text-wrap: pretty;
 }
 
 img {
@@ -97,7 +120,13 @@ button {
   background: var(--primary-dark);
   border-color: var(--primary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(155, 27, 96, 0.25);
+  box-shadow: 0 10px 24px rgba(155, 27, 96, 0.22);
+}
+
+/* Al presionar vuelve a su sitio: sin esto el botón se siente pegajoso */
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(155, 27, 96, 0.2);
 }
 
 .btn:disabled {
@@ -167,5 +196,36 @@ select:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(155, 27, 96, 0.12);
+}
+
+/*
+  Foco visible para quien navega con teclado. Va con :focus-visible y no con
+  :focus para que el anillo no salte al hacer clic con el ratón, que es lo
+  que llevó a tanta gente a apagarlo del todo.
+*/
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: var(--radio-xs);
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+/* Nada de deslizamientos ni saltos suaves para quien pidió lo contrario */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 </style>

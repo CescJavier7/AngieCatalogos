@@ -31,11 +31,24 @@ export const useReferrals = () => {
       { method: "POST", body: { code } }
     )
 
+  /**
+   * Bono de bienvenida de quien llegó invitada. Devuelve el código de la
+   * promoción que el checkout aplica al carrito; `disponible: false` cuando
+   * no le toca (no fue invitada, o ya hizo su primera compra).
+   */
+  const bono = () =>
+    medusa.client.fetch<{
+      disponible: boolean
+      codigo?: string
+      monto: number
+      minimo: number
+    }>("/store/referrals/bono")
+
   const marketing = (accepts: boolean) =>
     medusa.client.fetch<{ accepts_marketing: boolean }>(
       "/store/referrals/marketing",
       { method: "POST", body: { accepts } }
     )
 
-  return { resumen, canjear, marketing }
+  return { resumen, canjear, bono, marketing }
 }

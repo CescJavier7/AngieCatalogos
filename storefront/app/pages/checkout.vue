@@ -56,6 +56,48 @@ const loaded = ref(false)
 /** Proveedor de tarjeta. Es el id que Medusa arma para el módulo de PayPhone. */
 const PROVEEDOR_TARJETA = "pp_payphone_payphone"
 
+const { bono: consultarBono } = useReferrals()
+const bono = ref<{
+  disponible: boolean
+  codigo?: string
+  monto: number
+  minimo: number
+} | null>(null)
+
+/** Descuento ya aplicado por Medusa. Manda el carrito, no nuestra cuenta. */
+const descuento = computed(() => cart.value?.discount_total ?? 0)
+
+/** Lo que falta de compra para alcanzar el bono, si está a la vuelta. */
+const faltaParaBono = computed(() => {
+  if (!bono.value?.disponible || descuento.value > 0) return 0
+  const falta = bono.value.minimo - (cart.value?.item_subtotal ?? 0)
+  return falta > 0 ? falta : 0
+})
+
+/**
+ * Aplica el bono de bienvenida al carrito. La promoción lleva dentro su
+ * propio mínimo de compra, así que si el carrito no llega, Medusa la deja
+ * puesta pero sin descontar: no hace falta vigilarla desde aquí.
+ */
+const aplicarBono = async () => {
+  const codigo = bono.value?.codigo
+  if (!cart.value || !bono.value?.disponible || !codigo) return
+
+  const vigentes = (cart.value.promotions ?? [])
+    .map((p) => p.code)
+    .filter((c): c is string => !!c)
+  if (vigentes.includes(codigo)) return
+
+  try {
+    const { cart: actualizado } = await medusa.store.cart.update(cart.value.id, {
+      promo_codes: [...vigentes, codigo],
+    })
+    cart.value = actualizado
+  } catch {
+    /* Si Medusa lo rechaza, la compra sigue sin el bono */
+  }
+}
+
 const proveedoresPago = ref<string[]>([])
 const metodoPago = ref<"tarjeta" | "coordinar">("coordinar")
 /** Se sale de la página hacia PayPhone: el botón no debe volver a habilitarse. */
@@ -109,6 +151,14 @@ onMounted(async () => {
     proveedoresPago.value = payment_providers.map((p) => p.id)
     // Pagar en el momento es lo que conviene a las dos partes: si está, va primero
     if (tarjetaDisponible.value) metodoPago.value = "tarjeta"
+
+    // El bono se aplica solo: prometerlo y hacer que lo pidan sería mezquino
+    try {
+      bono.value = await consultarBono()
+      if (bono.value?.disponible) await aplicarBono()
+    } catch {
+      /* Sin bono no se rompe nada: la compra sigue igual */
+    }
   }
   loaded.value = true
 })
@@ -192,6 +242,33 @@ const cedulaValida = (valor: string) => {
   return (10 - (suma % 10)) % 10 === Number(valor[9])
 }
 
+/**
+ * Celular ecuatoriano normalizado a 09XXXXXXXX, o null si no se reconoce.
+ *
+ * La gente lo escribe de todas las formas —con +593, con espacios, con
+ * guiones— y las dos partes que lo reciben son estrictas: PayPhone rechaza
+ * la transacción entera si el número no le cuadra, y la transportadora no
+ * puede llamar a un número mal escrito. Se limpia una vez, aquí.
+ */
+const normalizarTelefono = (valor: string) => {
+  let d = valor.replace(/\D/g, "")
+  // Quita el código de país escrito de cualquier manera: +593, 00593, 593
+  if (d.startsWith("00593")) d = d.slice(5)
+  else if (d.startsWith("593")) d = d.slice(3)
+  // Con el país delante, el 0 inicial suele desaparecer: 98... en vez de 098...
+  if (/^9\d{8}$/.test(d)) d = `0${d}`
+  return /^09\d{8}$/.test(d) ? d : null
+}
+
+const telefonoLimpio = computed(() => normalizarTelefono(form.phone))
+
+const errorTelefono = computed(() => {
+  if (!form.phone.trim()) return null
+  return telefonoLimpio.value
+    ? null
+    : "Escribe tu celular a 10 dígitos, empezando por 09."
+})
+
 const errorCedula = computed(() => {
   if (!esRetiro.value || !form.retira_cedula) return null
   return cedulaValida(form.retira_cedula) ? null : "Esa cédula no es válida."
@@ -231,8 +308,11 @@ const guiaPreview = computed(() => {
 
 const shippingAmount = computed(() => opcionElegida.value?.amount ?? 0)
 
-const total = computed(
-  () => (cart.value?.item_subtotal ?? 0) + shippingAmount.value
+const total = computed(() =>
+  Math.max(
+    0,
+    (cart.value?.item_subtotal ?? 0) - descuento.value + shippingAmount.value
+  )
 )
 
 const pagaConTarjeta = computed(
@@ -248,6 +328,22 @@ const textoBoton = computed(() => {
     : "Confirmar pedido"
 })
 
+/**
+ * Etiqueta el paso que falló.
+ *
+ * Confirmar un pedido son cuatro llamadas seguidas y un solo `try` las
+ * envolvía a todas: cuando algo se rompía, el mensaje no decía dónde. Con la
+ * etiqueta delante, quien reporta el problema ya nos dice en qué paso fue,
+ * que es la mitad del diagnóstico cuando no puedes ver su pantalla.
+ */
+const paso = async <T>(que: string, accion: () => Promise<T>): Promise<T> => {
+  try {
+    return await accion()
+  } catch (e: any) {
+    throw new Error(`${que}: ${e?.message ?? "error desconocido"}`)
+  }
+}
+
 const placeOrder = async () => {
   if (!cart.value) return
   error.value = null
@@ -260,66 +356,82 @@ const placeOrder = async () => {
     error.value = "Revisa tu número de cédula: la transportadora lo exige en la guía."
     return
   }
+  if (!telefonoLimpio.value) {
+    error.value =
+      "Revisa tu celular: debe tener 10 dígitos y empezar por 09. Es el número al que te escribimos y con el que se valida el pago."
+    return
+  }
 
   submitting.value = true
   try {
     // 1. Datos del cliente y dirección
-    await medusa.store.cart.update(cart.value.id, {
-      email: form.email,
-      metadata: esRetiro.value
-        ? {
-            // Quien retira en Machachi queda registrado en el pedido
-            entrega: "retiro_bodega",
-            retira_nombre: form.retira_nombre.trim(),
-            retira_cedula: form.retira_cedula.trim(),
-          }
-        : {
-            // Datos sueltos para llenar la guía sin tener que parsear la dirección
-            entrega: zona.value === "mejia" ? "reparto_propio" : "transportadora",
-            zona: zona.value,
-            cedula: form.cedula.trim(),
-            provincia: form.province,
-            canton: form.canton,
-            parroquia: form.parroquia.trim(),
-            calle_principal: form.calle_principal.trim(),
-            numeracion: form.numeracion.trim(),
-            calle_secundaria: form.calle_secundaria.trim(),
-            referencia: form.referencia.trim(),
-          },
-      shipping_address: {
-        first_name: form.first_name,
-        last_name: form.last_name,
-        phone: form.phone,
-        address_1: esRetiro.value ? BODEGA : direccionLinea.value,
-        address_2: esRetiro.value ? "" : form.referencia.trim(),
-        city: esRetiro.value ? "Machachi" : form.parroquia.trim() || form.canton,
-        province: esRetiro.value ? "Pichincha" : form.province,
-        country_code: "ec",
-      },
-    })
+    await paso("Al guardar tus datos", () =>
+      medusa.store.cart.update(cart.value!.id, {
+        email: form.email,
+        metadata: esRetiro.value
+          ? {
+              // Quien retira en Machachi queda registrado en el pedido
+              entrega: "retiro_bodega",
+              retira_nombre: form.retira_nombre.trim(),
+              retira_cedula: form.retira_cedula.trim(),
+            }
+          : {
+              // Datos sueltos para llenar la guía sin tener que parsear la dirección
+              entrega: zona.value === "mejia" ? "reparto_propio" : "transportadora",
+              zona: zona.value,
+              cedula: form.cedula.trim(),
+              provincia: form.province,
+              canton: form.canton,
+              parroquia: form.parroquia.trim(),
+              calle_principal: form.calle_principal.trim(),
+              numeracion: form.numeracion.trim(),
+              calle_secundaria: form.calle_secundaria.trim(),
+              referencia: form.referencia.trim(),
+            },
+        shipping_address: {
+          first_name: form.first_name,
+          last_name: form.last_name,
+          phone: telefonoLimpio.value,
+          address_1: esRetiro.value ? BODEGA : direccionLinea.value,
+          address_2: esRetiro.value ? "" : form.referencia.trim(),
+          city: esRetiro.value ? "Machachi" : form.parroquia.trim() || form.canton,
+          province: esRetiro.value ? "Pichincha" : form.province,
+          country_code: "ec",
+        },
+      })
+    )
 
     // 2. Método de envío
     if (selectedShipping.value) {
-      await medusa.store.cart.addShippingMethod(cart.value.id, {
-        option_id: selectedShipping.value,
-      })
+      await paso("Al elegir el envío", () =>
+        medusa.store.cart.addShippingMethod(cart.value!.id, {
+          option_id: selectedShipping.value!,
+        })
+      )
     }
 
     // 3. Sesión de pago
-    const { cart: freshCart } = await medusa.store.cart.retrieve(cart.value.id)
+    const { cart: freshCart } = await paso("Al revisar tu carrito", () =>
+      medusa.store.cart.retrieve(cart.value!.id)
+    )
 
     if (metodoPago.value === "tarjeta") {
       // PayPhone cobra en su propio sitio: aquí solo se abre la transacción y
       // se sale hacia el enlace. El pedido se crea al volver, en /pedido/pagando
-      const { payment_collection } =
-        await medusa.store.payment.initiatePaymentSession(freshCart, {
-          provider_id: PROVEEDOR_TARJETA,
-          data: {
-            cart_id: freshCart.id,
-            // Su normativa pide el documento del titular cuando se tiene
-            documento: (esRetiro.value ? form.retira_cedula : form.cedula).trim(),
-          },
-        })
+      const { payment_collection } = await paso(
+        "Al abrir el pago con tarjeta",
+        () =>
+          medusa.store.payment.initiatePaymentSession(freshCart, {
+            provider_id: PROVEEDOR_TARJETA,
+            data: {
+              cart_id: freshCart.id,
+              // Su normativa pide el documento del titular cuando se tiene
+              documento: (esRetiro.value ? form.retira_cedula : form.cedula).trim(),
+              // El del checkout, no el de la ficha: puede llevar años sin tocarse
+              telefono: telefonoLimpio.value,
+            },
+          })
+      )
 
       const sesion = payment_collection.payment_sessions?.find(
         (s) => s.provider_id === PROVEEDOR_TARJETA
@@ -338,12 +450,16 @@ const placeOrder = async () => {
       return
     }
 
-    await medusa.store.payment.initiatePaymentSession(freshCart, {
-      provider_id: "pp_system_default",
-    })
+    await paso("Al preparar el pago", () =>
+      medusa.store.payment.initiatePaymentSession(freshCart, {
+        provider_id: "pp_system_default",
+      })
+    )
 
     // 4. Completar pedido
-    const result = await medusa.store.cart.complete(cart.value.id)
+    const result = await paso("Al cerrar el pedido", () =>
+      medusa.store.cart.complete(cart.value!.id)
+    )
     if (result.type === "order") {
       useState("last_order").value = result.order
       reset()
@@ -403,9 +519,11 @@ useSeo({
               v-model="form.phone"
               type="tel"
               required
-              pattern="[0-9+ ]{7,15}"
+              inputmode="tel"
+              placeholder="09XXXXXXXX"
               autocomplete="tel"
             />
+            <small v-if="errorTelefono" class="pickup__error">{{ errorTelefono }}</small>
           </label>
         </div>
 
@@ -614,6 +732,10 @@ useSeo({
           <span>Subtotal</span>
           <span>{{ formatMoney(cart?.item_subtotal) }}</span>
         </div>
+        <div v-if="descuento" class="summary__row summary__row--bono">
+          <span>Bono de bienvenida</span>
+          <span>−{{ formatMoney(descuento) }}</span>
+        </div>
         <div class="summary__row">
           <span>Envío</span>
           <span>{{ shippingAmount ? formatMoney(shippingAmount) : "Gratis" }}</span>
@@ -622,6 +744,11 @@ useSeo({
           <span>Total</span>
           <span>{{ formatMoney(total) }}</span>
         </div>
+
+        <p v-if="faltaParaBono" class="summary__nudge">
+          Te falta {{ formatMoney(faltaParaBono) }} para activar tu bono de
+          bienvenida de {{ formatMoney(bono?.monto) }}.
+        </p>
 
         <p v-if="error" class="summary__error">{{ error }}</p>
 
@@ -761,6 +888,22 @@ h1 {
 .shipping__price {
   font-weight: 800;
   color: var(--gold);
+}
+
+.summary__row--bono {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.summary__nudge {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--gold);
+  background: #fdf6e8;
+  border: 1px solid var(--gold-light);
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.75rem;
 }
 
 .pago .shipping__name {

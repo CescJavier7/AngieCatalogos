@@ -1,21 +1,7 @@
 <script setup lang="ts">
-const medusa = useMedusa()
-const { data: region } = await useRegion()
 const { addItem, busy } = useCart()
 
-const { data: products } = await useAsyncData(
-  "catalog-products",
-  async () => {
-    const { products } = await medusa.store.product.list({
-      limit: 100,
-      region_id: region.value?.id,
-      fields:
-        "id,title,handle,thumbnail,*images,*variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,*categories,*collection,*tags",
-    })
-    return products
-  },
-  { watch: [region] }
-)
+const { data: products } = await useCatalogo()
 
 /* ── Helpers ── */
 const priceOf = (p: any): number =>
@@ -89,6 +75,29 @@ const priceMin = ref(0)
 const priceMax = ref(100)
 const filtersOpen = ref(false)
 
+/**
+ * Filtros que llegan por la URL, que es como entra quien viene del menú del
+ * encabezado (/catalogo?tipo=Perfumes). Se aplican en el setup, no al montar,
+ * para que la página ya salga filtrada del servidor y no parpadee.
+ */
+const route = useRoute()
+const desdeUrl = (valor: unknown): string[] => {
+  if (Array.isArray(valor)) return valor.filter(Boolean).map(String)
+  return valor ? [String(valor)] : []
+}
+
+const aplicarUrl = () => {
+  selectedTypes.value = desdeUrl(route.query.tipo)
+  selectedAudience.value = desdeUrl(route.query.publico)
+  selectedBrands.value = desdeUrl(route.query.marca)
+  onlyPromos.value = route.query.promo === "1"
+  onlyFavoritos.value = route.query.favoritos === "1"
+}
+aplicarUrl()
+
+// Volver a tocar el mismo enlace del menú tiene que cambiar lo que se ve
+watch(() => route.query, aplicarUrl)
+
 watch(
   priceBounds,
   (b) => {
@@ -113,7 +122,12 @@ const activeFilters = computed(
     (priceMin.value > priceBounds.value.min || priceMax.value < priceBounds.value.max ? 1 : 0)
 )
 
+const router = useRouter()
+
 const clearFilters = () => {
+  // Si se llegó con filtros en la URL, limpiarlos también: si no, el watcher
+  // los volvería a poner en cuanto cambiara cualquier otra cosa de la ruta
+  if (Object.keys(route.query).length) router.replace({ query: {} })
   selectedBrands.value = []
   selectedAudience.value = []
   selectedTypes.value = []
@@ -200,6 +214,18 @@ const quickAdd = async (p: any) => {
   setTimeout(() => (added.value = null), 1600)
 }
 
+/**
+ * El título dice qué se está viendo. Quien entra desde el menú por
+ * "Perfumes" tiene que reconocer en la página el enlace que tocó.
+ */
+const tituloVista = computed(() => {
+  if (onlyPromos.value) return "Ofertas del mes"
+  if (onlyFavoritos.value) return "Mis favoritos"
+  const elegido =
+    selectedTypes.value[0] ?? selectedBrands.value[0] ?? selectedAudience.value[0]
+  return elegido ?? "Compra por catálogo"
+})
+
 useSeo({
   title: "Catálogo de perfumes, cuidado personal y moda",
   description:
@@ -211,8 +237,12 @@ useSeo({
   <div class="container catalog-page">
     <header class="catalog-page__head">
       <div>
-        <span class="eyebrow">Nuestro catálogo</span>
-        <h1>Explora por marca</h1>
+        <span class="eyebrow">Tienda en línea</span>
+        <h1>{{ tituloVista }}</h1>
+        <p class="catalog-page__lead">
+          Agrega al carrito y paga con tarjeta, o coordina por WhatsApp.
+          Envío a todo el Ecuador y retiro gratis en Machachi.
+        </p>
       </div>
     </header>
 
@@ -398,6 +428,13 @@ useSeo({
   margin-top: 0.3rem;
 }
 
+.catalog-page__lead {
+  margin-top: 0.4rem;
+  max-width: 52ch;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 .catalog-page__toggle {
   display: none;
 }
@@ -540,17 +577,18 @@ useSeo({
 .card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 1rem;
+  border-radius: var(--radio-md);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--sombra-sutil);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .card:hover {
   transform: translateY(-5px);
   border-color: var(--gold-light);
-  box-shadow: 0 18px 40px rgba(42, 30, 38, 0.12);
+  box-shadow: var(--sombra-alta);
 }
 
 .card__media {
@@ -622,6 +660,8 @@ useSeo({
 .card__price {
   color: var(--gold);
   font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
 }
 
 .card__add {

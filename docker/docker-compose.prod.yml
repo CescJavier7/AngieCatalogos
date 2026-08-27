@@ -88,6 +88,9 @@ services:
       PAYPHONE_STORE_ID: ${PAYPHONE_STORE_ID:-}
       PAYPHONE_IVA: ${PAYPHONE_IVA:-0}
       STOREFRONT_URL: ${STOREFRONT_URL:-}
+      # Correo saliente: sin esto los comprobantes solo se escriben en el log
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      SENDGRID_FROM: ${SENDGRID_FROM:-}
     volumes:
       # JSON de la cuenta de servicio (colocarlo junto al .env.prod)
       - ./google-sa.json:/app/google-sa.json:ro

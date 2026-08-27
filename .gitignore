@@ -29,3 +29,5 @@ uploads/
 
 # Credenciales de Google (nunca subir)
 google-sa.json
+# factura de ejemplo generada por el script
+backend/factura-ejemplo.html

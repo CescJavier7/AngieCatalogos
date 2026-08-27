@@ -10,6 +10,12 @@ const googleAuthEnabled =
 // pago manual mientras las credenciales no estén listas
 const payphoneEnabled = !!process.env.PAYPHONE_TOKEN
 
+// Los comprobantes salen por SendGrid. Sin credenciales cae al proveedor
+// local, que escribe el correo en el log en vez de enviarlo: así se puede
+// revisar cómo quedó el diseño antes de contratar nada.
+const sendgridEnabled =
+  !!process.env.SENDGRID_API_KEY && !!process.env.SENDGRID_FROM
+
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
@@ -32,6 +38,28 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/analytics",
+    },
+    {
+      resolve: "@medusajs/medusa/notification",
+      options: {
+        providers: [
+          sendgridEnabled
+            ? {
+                resolve: "@medusajs/medusa/notification-sendgrid",
+                id: "sendgrid",
+                options: {
+                  channels: ["email"],
+                  api_key: process.env.SENDGRID_API_KEY,
+                  from: process.env.SENDGRID_FROM,
+                },
+              }
+            : {
+                resolve: "@medusajs/medusa/notification-local",
+                id: "local",
+                options: { channels: ["email"] },
+              },
+        ],
+      },
     },
     {
       // El pago manual (pp_system_default) viene incluido siempre; PayPhone
