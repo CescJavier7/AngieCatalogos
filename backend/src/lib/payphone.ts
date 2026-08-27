@@ -152,3 +152,61 @@ export const confirmarPago = async (id: number, referenciaInterna: string) => {
     }`
   )
 }
+
+/**
+ * Desglose de impuestos según el régimen del comercio.
+ *
+ * PAYPHONE_IVA=0   → sin impuesto (RIMPE Negocio Popular, notas de venta)
+ * PAYPHONE_IVA=15  → los precios YA incluyen IVA y se separa la base
+ *
+ * Cambiar de régimen es cambiar esa variable, no el código. PayPhone rechaza
+ * la transacción si las partes no suman exactamente el total, así que el
+ * redondeo se hace en centavos y la base absorbe la diferencia.
+ */
+export const desglosarImpuesto = (totalCentavos: number) => {
+  const tasa = Number(process.env.PAYPHONE_IVA ?? 0)
+  if (!tasa || tasa <= 0) {
+    return { sinImpuestoCentavos: totalCentavos, gravadoCentavos: 0, impuestoCentavos: 0 }
+  }
+  const gravado = Math.round(totalCentavos / (1 + tasa / 100))
+  return {
+    sinImpuestoCentavos: 0,
+    gravadoCentavos: gravado,
+    // La resta garantiza que la suma cuadre al centavo
+    impuestoCentavos: totalCentavos - gravado,
+  }
+}
+
+/** Convierte dólares a centavos enteros sin errores de coma flotante. */
+export const aCentavos = (dolares: number) => Math.round(dolares * 100)
+
+/**
+ * Anula/reversa una transacción ya confirmada. PayPhone no distingue entre
+ * anular y devolver: la misma llamada sirve para las dos cosas y siempre es
+ * por el total, nunca parcial.
+ *
+ * Si esto falla, el dinero sigue cobrado: hay que devolverlo a mano desde el
+ * panel de PayPhone. Por eso el error viaja con esa instrucción dentro.
+ */
+export const anularPago = async (id: number) => {
+  const r = await pedir<{ message?: string }>("/api/Sale/Cancel", { id })
+  if (r.status === 200) return
+  throw new Error(
+    `PayPhone no pudo anular la transacción ${id} (${r.status}): ${
+      r.datos ? JSON.stringify(r.datos) : r.crudo.slice(0, 200)
+    }. Devuelve el dinero a mano desde el panel de PayPhone.`
+  )
+}
+
+/**
+ * Dirección pública de la tienda, para armar las URLs a las que PayPhone
+ * devuelve al cliente. Si no se define, se toma el primer origen de STORE_CORS
+ * porque ese ya apunta a la tienda en cualquier despliegue.
+ */
+export const urlTienda = () => {
+  const explicita = process.env.STOREFRONT_URL?.trim()
+  if (explicita) return explicita.replace(/\/$/, "")
+  const primerCors = process.env.STORE_CORS?.split(",")[0]?.trim()
+  if (primerCors) return primerCors.replace(/\/$/, "")
+  return "http://localhost:8000"
+}

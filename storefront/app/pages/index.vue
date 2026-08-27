@@ -19,7 +19,7 @@ const faqs = [
   },
   {
     q: "¿Cómo pago mi pedido?",
-    a: "Al confirmar tu pedido en la tienda coordinamos el pago contigo por WhatsApp (transferencia o contra entrega). Muy pronto también podrás pagar en línea con tarjeta.",
+    a: "Con tarjeta de crédito o débito al instante —el cobro lo procesa PayPhone, así que tus datos nunca pasan por nosotros— o coordinando transferencia o contra entrega por WhatsApp. Eliges en el último paso de la compra.",
   },
 ]
 

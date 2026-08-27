@@ -53,6 +53,20 @@ const submitting = ref(false)
 const error = ref<string | null>(null)
 const loaded = ref(false)
 
+/** Proveedor de tarjeta. Es el id que Medusa arma para el módulo de PayPhone. */
+const PROVEEDOR_TARJETA = "pp_payphone_payphone"
+
+const proveedoresPago = ref<string[]>([])
+const metodoPago = ref<"tarjeta" | "coordinar">("coordinar")
+/** Se sale de la página hacia PayPhone: el botón no debe volver a habilitarse. */
+const saliendo = ref(false)
+
+// La tarjeta solo aparece si la región la tiene habilitada de verdad; así una
+// tienda sin credenciales sigue vendiendo con el pago coordinado
+const tarjetaDisponible = computed(() =>
+  proveedoresPago.value.includes(PROVEEDOR_TARJETA)
+)
+
 onMounted(async () => {
   await refresh()
 
@@ -83,11 +97,18 @@ onMounted(async () => {
   }
 
   if (cart.value?.items?.length) {
-    const { shipping_options } = await medusa.store.fulfillment.listCartOptions({
-      cart_id: cart.value.id,
-    })
+    const [{ shipping_options }, { payment_providers }] = await Promise.all([
+      medusa.store.fulfillment.listCartOptions({ cart_id: cart.value.id }),
+      medusa.store.payment.listPaymentProviders({
+        region_id: cart.value.region_id!,
+      }),
+    ])
     shippingOptions.value = shipping_options
     selectedShipping.value = shipping_options[0]?.id ?? null
+
+    proveedoresPago.value = payment_providers.map((p) => p.id)
+    // Pagar en el momento es lo que conviene a las dos partes: si está, va primero
+    if (tarjetaDisponible.value) metodoPago.value = "tarjeta"
   }
   loaded.value = true
 })
@@ -214,6 +235,19 @@ const total = computed(
   () => (cart.value?.item_subtotal ?? 0) + shippingAmount.value
 )
 
+const pagaConTarjeta = computed(
+  () => tarjetaDisponible.value && metodoPago.value === "tarjeta"
+)
+
+const textoBoton = computed(() => {
+  if (submitting.value) {
+    return pagaConTarjeta.value ? "Llevándote al pago seguro…" : "Procesando…"
+  }
+  return pagaConTarjeta.value
+    ? `Pagar ${formatMoney(total.value)} con tarjeta`
+    : "Confirmar pedido"
+})
+
 const placeOrder = async () => {
   if (!cart.value) return
   error.value = null
@@ -271,8 +305,39 @@ const placeOrder = async () => {
       })
     }
 
-    // 3. Sesión de pago (proveedor manual hasta integrar Kushki/PayPhone)
+    // 3. Sesión de pago
     const { cart: freshCart } = await medusa.store.cart.retrieve(cart.value.id)
+
+    if (metodoPago.value === "tarjeta") {
+      // PayPhone cobra en su propio sitio: aquí solo se abre la transacción y
+      // se sale hacia el enlace. El pedido se crea al volver, en /pedido/pagando
+      const { payment_collection } =
+        await medusa.store.payment.initiatePaymentSession(freshCart, {
+          provider_id: PROVEEDOR_TARJETA,
+          data: {
+            cart_id: freshCart.id,
+            // Su normativa pide el documento del titular cuando se tiene
+            documento: (esRetiro.value ? form.retira_cedula : form.cedula).trim(),
+          },
+        })
+
+      const sesion = payment_collection.payment_sessions?.find(
+        (s) => s.provider_id === PROVEEDOR_TARJETA
+      )
+      const enlace = sesion?.data?.payWithCard as string | undefined
+      if (!enlace) {
+        error.value =
+          "No pudimos abrir el pago con tarjeta. Intenta de nuevo o elige coordinar por WhatsApp."
+        return
+      }
+
+      // El carrito NO se limpia: al volver de PayPhone se necesita para
+      // convertirlo en pedido
+      saliendo.value = true
+      window.location.href = enlace
+      return
+    }
+
     await medusa.store.payment.initiatePaymentSession(freshCart, {
       provider_id: "pp_system_default",
     })
@@ -291,7 +356,7 @@ const placeOrder = async () => {
   } catch (e: any) {
     error.value = e?.message ?? "Ocurrió un error inesperado."
   } finally {
-    submitting.value = false
+    if (!saliendo.value) submitting.value = false
   }
 }
 
@@ -494,10 +559,42 @@ useSeo({
         </div>
 
         <h2>3 · Pago</h2>
-        <p class="payment-note">
-          Por ahora coordinamos el pago contigo por WhatsApp al confirmar tu
-          pedido (transferencia o contra entrega). Muy pronto podrás pagar en
-          línea con tarjeta.
+
+        <fieldset v-if="tarjetaDisponible" class="shipping pago">
+          <legend>¿Cómo prefieres pagar?</legend>
+          <label
+            class="shipping__option"
+            :class="{ 'shipping__option--active': metodoPago === 'tarjeta' }"
+          >
+            <input v-model="metodoPago" type="radio" name="pago" value="tarjeta" />
+            <span class="shipping__name">
+              Tarjeta de crédito o débito
+              <small>Al instante, con PayPhone</small>
+            </span>
+            <span class="pago__marcas">Visa · Mastercard · Diners</span>
+          </label>
+          <label
+            class="shipping__option"
+            :class="{ 'shipping__option--active': metodoPago === 'coordinar' }"
+          >
+            <input v-model="metodoPago" type="radio" name="pago" value="coordinar" />
+            <span class="shipping__name">
+              Coordinar por WhatsApp
+              <small>Transferencia o contra entrega</small>
+            </span>
+          </label>
+          <p class="zona-note zona-note--info">
+            {{
+              metodoPago === "tarjeta"
+                ? "Al confirmar te llevamos al sitio seguro de PayPhone para que ingreses tu tarjeta. Nosotros nunca vemos esos datos."
+                : "Te escribimos por WhatsApp apenas recibamos tu pedido para acordar el pago y la entrega."
+            }}
+          </p>
+        </fieldset>
+
+        <p v-else class="payment-note">
+          Coordinamos el pago contigo por WhatsApp al confirmar tu pedido
+          (transferencia o contra entrega).
         </p>
       </section>
 
@@ -529,9 +626,15 @@ useSeo({
         <p v-if="error" class="summary__error">{{ error }}</p>
 
         <button class="btn summary__submit" type="submit" :disabled="submitting">
-          {{ submitting ? "Procesando…" : "Confirmar pedido" }}
+          {{ textoBoton }}
         </button>
-        <p class="summary__safe">Compra respaldada · Angie Catálogos</p>
+        <p class="summary__safe">
+          {{
+            pagaConTarjeta
+              ? "Pago protegido · PayPhone"
+              : "Compra respaldada · Angie Catálogos"
+          }}
+        </p>
       </aside>
     </form>
 
@@ -658,6 +761,24 @@ h1 {
 .shipping__price {
   font-weight: 800;
   color: var(--gold);
+}
+
+.pago .shipping__name {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.pago .shipping__name small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.pago__marcas {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .zona-note {
@@ -863,6 +984,11 @@ h1 {
 
   .span-2 {
     grid-column: auto;
+  }
+
+  /* En pantalla angosta las marcas apretarían el nombre del método */
+  .pago__marcas {
+    display: none;
   }
 }
 </style>

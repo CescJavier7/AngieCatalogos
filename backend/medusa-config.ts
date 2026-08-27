@@ -6,6 +6,10 @@ loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 const googleAuthEnabled =
   !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET
 
+// Sin token no se registra PayPhone: así el checkout sigue en pie con el
+// pago manual mientras las credenciales no estén listas
+const payphoneEnabled = !!process.env.PAYPHONE_TOKEN
+
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
@@ -28,6 +32,22 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/analytics",
+    },
+    {
+      // El pago manual (pp_system_default) viene incluido siempre; PayPhone
+      // se suma encima cuando hay token
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: payphoneEnabled
+          ? [
+              {
+                resolve: "./src/modules/payphone",
+                id: "payphone",
+                options: {},
+              },
+            ]
+          : [],
+      },
     },
     {
       resolve: "@medusajs/medusa/auth",

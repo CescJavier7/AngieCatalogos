@@ -50,10 +50,37 @@ backend, entrypoint `websecure` + `tls`, red `proxy-net` — el mismo patrón qu
 portfolio-frontend. HTTPS lo maneja la pareja Traefik + Cloudflare como en el
 resto del servidor.
 
+## 4.5. Pago con tarjeta (PayPhone)
+Se activa por variables de entorno: sin `PAYPHONE_TOKEN` el checkout sigue
+funcionando con el pago coordinado por WhatsApp y la opción de tarjeta ni
+siquiera aparece.
+
+```bash
+nano .env.prod   # PAYPHONE_TOKEN, PAYPHONE_IVA y STOREFRONT_URL
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d backend
+
+# Comprobar las credenciales sin tocar el checkout (abre un cobro de $1 de prueba)
+docker exec -it angie-prod-backend npx medusa exec ./src/scripts/payphone-check.ts
+
+# Enlazar el proveedor con la región Ecuador. El seed solo corre en una tienda
+# nueva, así que en la que ya está viva ESTE es el paso que la hace aparecer
+docker exec -it angie-prod-backend npx medusa exec ./src/scripts/payphone-activar.ts
+```
+
+`PAYPHONE_IVA` es el régimen del comercio: `0` para RIMPE Negocio Popular
+(notas de venta, sin IVA) y `15` si los precios del catálogo ya lo incluyen.
+PayPhone rechaza el cobro si el desglose no cuadra al centavo, así que ese
+número tiene que reflejar la realidad tributaria, no una preferencia.
+
+El ambiente (pruebas o producción) se elige en el panel de PayPhone Developer:
+cada uno entrega su propio token. Con el de pruebas, sus tarjetas de prueba
+recorren el flujo completo sin mover dinero.
+
 ## 5. Verificar
 - https://tienda-api.cescjavier.dev/health → `OK`
 - https://tienda-api.cescjavier.dev/app → panel admin
 - https://tienda.cescjavier.dev → tienda
+- Checkout → sección "Pago": debe ofrecer tarjeta. Si no sale, falta el paso 4.5
 
 ## Operación
 - Actualizar: `git pull && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build`

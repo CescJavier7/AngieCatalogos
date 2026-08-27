@@ -86,6 +86,8 @@ services:
       # en el panel de PayPhone Developer, no desde aquí.
       PAYPHONE_TOKEN: ${PAYPHONE_TOKEN:-}
       PAYPHONE_STORE_ID: ${PAYPHONE_STORE_ID:-}
+      PAYPHONE_IVA: ${PAYPHONE_IVA:-0}
+      STOREFRONT_URL: ${STOREFRONT_URL:-}
     volumes:
       # JSON de la cuenta de servicio (colocarlo junto al .env.prod)
       - ./google-sa.json:/app/google-sa.json:ro

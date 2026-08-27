@@ -157,7 +157,10 @@ export default async function seedAngieCatalogos({ container }: ExecArgs) {
           name: "Ecuador",
           currency_code: "usd",
           countries: ["ec"],
-          payment_providers: ["pp_system_default"], // Kushki y PayPhone se agregan en la Fase 2
+          // El pago manual siempre; la tarjeta solo si hay credenciales
+          payment_providers: process.env.PAYPHONE_TOKEN
+            ? ["pp_system_default", "pp_payphone_payphone"]
+            : ["pp_system_default"],
         },
       ],
     },
