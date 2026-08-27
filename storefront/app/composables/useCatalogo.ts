@@ -27,20 +27,33 @@ const CAMPOS = [
 
 export const useCatalogo = () => {
   const medusa = useMedusa()
-  const { data: region } = useRegion()
 
   return useAsyncData(
     "catalogo",
     async () => {
+      /*
+        La región se resuelve AQUÍ DENTRO, no fuera.
+
+        Fuera hacía falta un `await` para tener su id a tiempo, y un `await`
+        en mitad de un composable le quita a Nuxt el contexto del componente
+        (NUXT_E1001). Sin `await`, en el servidor la región llegaba vacía, la
+        consulta salía sin `region_id`, Medusa rechazaba los precios
+        calculados y el catálogo se pintaba sin un solo producto. En el
+        navegador no se notaba porque después se volvía a pedir — pero
+        Googlebot solo lee lo que sirve el servidor, y veía una tienda vacía.
+
+        Dentro del handler el `await` es libre y el orden queda garantizado.
+      */
+      const { regions } = await medusa.store.region.list()
+
       const { products } = await medusa.store.product.list({
         limit: 100,
-        region_id: region.value?.id,
+        region_id: regions[0]?.id,
         fields: CAMPOS,
       })
       return products
     },
     {
-      watch: [region],
       /*
         Solo al montar: un refresco explícito sigue yendo al servidor, y si lo
         guardado viniera vacío se vuelve a pedir en vez de mostrar un catálogo
