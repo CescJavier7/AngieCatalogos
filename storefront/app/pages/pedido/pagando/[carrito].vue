@@ -54,7 +54,7 @@ onMounted(async () => {
     // entonces le pide a PayPhone el cobro definitivo
     const result = await medusa.store.cart.complete(carritoId)
     if (result.type === "order") {
-      useState("last_order").value = result.order
+      useUltimoPedido().guardar(result.order)
       reset()
       await navigateTo("/pedido/confirmacion")
       return

@@ -1,4 +1,12 @@
 <script setup lang="ts">
+/*
+  El párrafo de rastreo aparece solo cuando el píxel está de verdad
+  configurado. Una política que declara lo que no ocurre es tan incorrecta
+  como una que calla lo que sí: así el texto dice la verdad en los dos casos,
+  sin que nadie tenga que acordarse de editarlo al activar la publicidad.
+*/
+const pixelActivo = !!useRuntimeConfig().public.metaPixelId
+
 useSeo({
   title: "Política de Privacidad",
   description:
@@ -98,9 +106,20 @@ const actualizado = "22 de agosto de 2026"
 
     <h2>Cookies</h2>
     <p>
-      Usamos únicamente las cookies necesarias para mantener tu sesión iniciada y
-      recordar tu carrito. No utilizamos cookies de publicidad ni de seguimiento
-      de terceros.
+      Usamos cookies necesarias para mantener tu sesión iniciada y recordar tu
+      carrito. Sin ellas la tienda no puede funcionar.
+    </p>
+    <p v-if="pixelActivo">
+      Además utilizamos el píxel de Meta (Facebook e Instagram) para medir
+      nuestra publicidad: nos permite saber qué anuncio dio origen a una visita
+      o a una compra. Registra las páginas que ves en esta tienda, los
+      productos que agregas al carrito y el monto de tu pedido, y esa
+      información se comparte con Meta Platforms. Puedes bloquearlo desde la
+      configuración de tu navegador o con cualquier extensión de bloqueo de
+      rastreadores, sin que eso afecte tu compra.
+    </p>
+    <p v-else>
+      No utilizamos cookies de publicidad ni de seguimiento de terceros.
     </p>
 
     <h2>Menores de edad</h2>

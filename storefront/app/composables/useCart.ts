@@ -56,6 +56,15 @@ export const useCart = () => {
       )
       cart.value = updated
       cartOpen.value = true
+
+      // Lo que se acaba de añadir, para medir el anuncio que lo trajo
+      const linea = updated.items?.find((i) => i.variant_id === variantId)
+      if (linea) {
+        useSeguimiento().agregarAlCarrito(
+          { id: linea.product_id, title: linea.product_title || linea.title },
+          Number(linea.unit_price ?? 0)
+        )
+      }
     } finally {
       busy.value = false
     }

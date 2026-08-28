@@ -91,6 +91,8 @@ services:
       # Correo saliente: sin esto los comprobantes solo se escriben en el log
       SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
       SENDGRID_FROM: ${SENDGRID_FROM:-}
+      # A dónde llega el aviso de cada pedido nuevo. Sin esto, no se avisa.
+      TIENDA_EMAIL: ${TIENDA_EMAIL:-}
     volumes:
       # JSON de la cuenta de servicio (colocarlo junto al .env.prod)
       - ./google-sa.json:/app/google-sa.json:ro
@@ -120,6 +122,9 @@ services:
       NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${MEDUSA_PUBLISHABLE_KEY}
       # Nuxt deriva el nombre de la clave runtimeConfig: googleAuthEnabled
       NUXT_PUBLIC_GOOGLE_AUTH_ENABLED: ${NUXT_PUBLIC_GOOGLE_AUTH:-false}
+      # Píxel de Meta para medir la publicidad. Vacío = la tienda no carga
+      # nada de Facebook.
+      NUXT_PUBLIC_META_PIXEL_ID: ${META_PIXEL_ID:-}
     ports:
       - "127.0.0.1:3300:3000"
     networks: [angie, proxy-net]

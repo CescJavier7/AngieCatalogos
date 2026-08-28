@@ -161,6 +161,15 @@ onMounted(async () => {
     }
   }
   loaded.value = true
+
+  // Llegar al checkout es la señal intermedia que Meta necesita para
+  // distinguir a quien va en serio de quien solo mira
+  if (cart.value?.items?.length) {
+    useSeguimiento().iniciarCompra(
+      Number(cart.value.item_subtotal ?? 0),
+      cart.value.items.reduce((n, i) => n + i.quantity, 0)
+    )
+  }
 })
 
 /** Mejía sin recargo (salvo Tandapí), resto de Pichincha $3, provincias $6. */
@@ -458,7 +467,7 @@ const placeOrder = async () => {
       medusa.store.cart.complete(cart.value!.id)
     )
     if (result.type === "order") {
-      useState("last_order").value = result.order
+      useUltimoPedido().guardar(result.order)
       reset()
       await navigateTo("/pedido/confirmacion")
     } else {

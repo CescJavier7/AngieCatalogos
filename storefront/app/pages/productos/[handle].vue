@@ -128,6 +128,14 @@ useJsonLd({
   ],
 })
 
+// Meta: esta ficha se vio, y por cuánto
+onMounted(() =>
+  useSeguimiento().verProducto(
+    product.value,
+    Number(variant.value?.calculated_price?.calculated_amount ?? 0)
+  )
+)
+
 // Ficha de producto para Google: precio, moneda y disponibilidad
 useJsonLd({
   "@context": "https://schema.org",

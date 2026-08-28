@@ -1,11 +1,32 @@
 <script setup lang="ts">
-const order = useState<any>("last_order")
+const { pedido: order, cargar } = useUltimoPedido()
+const cargando = ref(true)
 
 useSeo({ title: "¡Pedido confirmado!", description: "Gracias por tu compra en Angie Catálogos.", noindex: true })
 
 const trackingCode = computed(
   () => `AC-${String(order.value?.display_id ?? 0).padStart(4, "0")}`
 )
+
+onMounted(async () => {
+  await cargar()
+  cargando.value = false
+  if (!order.value) return
+
+  /*
+    El evento que paga la publicidad. Va marcado en la sesión porque ahora la
+    página sobrevive a una recarga: sin la marca, cada F5 contaría una venta
+    nueva y Meta acabaría optimizando contra números inflados.
+  */
+  const marca = `compra-${order.value.id}`
+  try {
+    if (sessionStorage.getItem(marca)) return
+    sessionStorage.setItem(marca, "1")
+  } catch {
+    /* Navegador sin almacenamiento: mejor medir de más que no medir */
+  }
+  useSeguimiento().compra(order.value)
+})
 
 const whatsappUrl = computed(() => {
   const msg = `Hola, acabo de realizar el pedido ${trackingCode.value} en la tienda. Quiero coordinar el pago y la entrega.`
@@ -42,6 +63,11 @@ const whatsappUrl = computed(() => {
       </div>
 
       <NuxtLink to="/#catalogo" class="confirm__back">← Seguir comprando</NuxtLink>
+    </template>
+
+    <template v-else-if="cargando">
+      <h1>Un momento…</h1>
+      <p class="confirm__lead">Estamos recuperando tu pedido.</p>
     </template>
 
     <template v-else>

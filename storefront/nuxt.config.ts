@@ -49,6 +49,8 @@ export default defineNuxtConfig({
       siteUrl: SITE_URL,
       medusaUrl: process.env.NUXT_PUBLIC_MEDUSA_URL || "http://localhost:9000",
       medusaPublishableKey: process.env.NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+      // Píxel de Meta. Vacío = no se carga nada de Facebook en la tienda.
+      metaPixelId: process.env.NUXT_PUBLIC_META_PIXEL_ID || "",
       // Muestra el botón "Continuar con Google" cuando el backend lo tiene activo.
       // En runtime se sobreescribe con NUXT_PUBLIC_GOOGLE_AUTH_ENABLED.
       googleAuthEnabled:

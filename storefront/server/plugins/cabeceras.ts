@@ -11,6 +11,10 @@
  * La política es permisiva con las imágenes a propósito: las fotos de
  * producto vienen de dominios que se escriben en la hoja de Google y no se
  * pueden enumerar de antemano.
+ *
+ * Los dominios de Meta están porque los usa el píxel de publicidad. Si algún
+ * día se deja de anunciar, se quitan de aquí: mientras estén, el navegador
+ * permite esas conexiones aunque el píxel no esté configurado.
  */
 export default defineNitroPlugin((nitro) => {
   nitro.hooks.hook("render:response", (response, { event }) => {
@@ -24,8 +28,8 @@ export default defineNitroPlugin((nitro) => {
       "img-src 'self' data: https:",
       "font-src 'self' https://fonts.gstatic.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
-      `connect-src 'self' ${api} https://cloudflareinsights.com`.trim(),
+      "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://connect.facebook.net",
+      `connect-src 'self' ${api} https://cloudflareinsights.com https://www.facebook.com`.trim(),
       "form-action 'self' https://pay.payphonetodoesposible.com",
       "upgrade-insecure-requests",
     ].join("; ")

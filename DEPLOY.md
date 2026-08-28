@@ -95,10 +95,37 @@ en **Sender Authentication** (sin eso rechazan todo), y completar en
 ```
 SENDGRID_API_KEY=SG.xxxxx
 SENDGRID_FROM=hola@cescjavier.dev
+TIENDA_EMAIL=correo-de-angie@gmail.com
 ```
 
 Luego `up -d --build backend`. Un pedido genera un solo comprobante aunque los
 eventos se repitan; si un envío falla, el siguiente intento lo reintenta.
+
+`TIENDA_EMAIL` es distinto: ahí llega el aviso de **cada pedido nuevo**, esté
+cobrado o no, con qué empacar y a dónde enviarlo. Los pedidos por transferencia
+nacen sin cobrar y son justo los que alguien tiene que ver y llamar, así que
+ese aviso no espera al dinero. Sin esa variable no se avisa a nadie.
+
+## 4.7. Píxel de Meta (medir la publicidad)
+Solo hace falta si se van a pagar anuncios en Facebook o Instagram. Sin
+`META_PIXEL_ID` la tienda no carga nada de Facebook, y la política de
+privacidad lo refleja sola: el párrafo sobre rastreo aparece únicamente cuando
+el píxel está activo.
+
+El id sale de Meta → Administrador de eventos → Orígenes de datos.
+
+```bash
+nano .env.prod   # META_PIXEL_ID=1234567890
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build storefront
+
+# Comprobar: 0 sin píxel, 1 con píxel
+curl -s https://tienda.cescjavier.dev/ | grep -c "connect.facebook.net"
+```
+
+Eventos que se envían: ver producto, agregar al carrito, iniciar compra y
+compra con su valor. El último es el que permite a Meta aprender a quién
+mostrar los anuncios; sin él, optimiza por clics y el presupuesto se va en
+curiosos.
 
 ## 5. Verificar
 - https://tienda-api.cescjavier.dev/health → `OK`
