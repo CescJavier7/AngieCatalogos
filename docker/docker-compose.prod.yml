@@ -89,6 +89,13 @@ services:
       PAYPHONE_IVA: ${PAYPHONE_IVA:-0}
       STOREFRONT_URL: ${STOREFRONT_URL:-}
       # Correo saliente: sin esto los comprobantes solo se escriben en el log
+      # Correo por SMTP. Si estas están completas, mandan sobre SendGrid.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
       SENDGRID_FROM: ${SENDGRID_FROM:-}
       # A dónde llega el aviso de cada pedido nuevo. Sin esto, no se avisa.

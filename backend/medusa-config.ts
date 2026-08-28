@@ -10,11 +10,24 @@ const googleAuthEnabled =
 // pago manual mientras las credenciales no estén listas
 const payphoneEnabled = !!process.env.PAYPHONE_TOKEN
 
-// Los comprobantes salen por SendGrid. Sin credenciales cae al proveedor
-// local, que escribe el correo en el log en vez de enviarlo: así se puede
-// revisar cómo quedó el diseño antes de contratar nada.
+/**
+ * Proveedor de correo, por orden de preferencia: SMTP, luego SendGrid, y si
+ * no hay ninguno, el local —que escribe el correo en el log en vez de
+ * enviarlo, útil para revisar el diseño sin contratar nada.
+ *
+ * SMTP va primero a propósito: es el que habla con cualquier servicio (Brevo,
+ * Amazon SES, Mailgun, el correo del hosting) y el que permite cambiar de
+ * proveedor sin tocar código. SendGrid se queda por debajo porque su plan
+ * gratuito caduca a los 60 días.
+ */
+const smtpEnabled =
+  !!process.env.SMTP_HOST &&
+  !!process.env.SMTP_USER &&
+  !!process.env.SMTP_PASSWORD &&
+  !!process.env.SMTP_FROM
+
 const sendgridEnabled =
-  !!process.env.SENDGRID_API_KEY && !!process.env.SENDGRID_FROM
+  !smtpEnabled && !!process.env.SENDGRID_API_KEY && !!process.env.SENDGRID_FROM
 
 module.exports = defineConfig({
   projectConfig: {
@@ -43,21 +56,35 @@ module.exports = defineConfig({
       resolve: "@medusajs/medusa/notification",
       options: {
         providers: [
-          sendgridEnabled
+          smtpEnabled
             ? {
-                resolve: "@medusajs/medusa/notification-sendgrid",
-                id: "sendgrid",
+                resolve: "./src/modules/correo-smtp",
+                id: "smtp",
                 options: {
                   channels: ["email"],
-                  api_key: process.env.SENDGRID_API_KEY,
-                  from: process.env.SENDGRID_FROM,
+                  host: process.env.SMTP_HOST,
+                  port: Number(process.env.SMTP_PORT ?? 587),
+                  user: process.env.SMTP_USER,
+                  password: process.env.SMTP_PASSWORD,
+                  from: process.env.SMTP_FROM,
+                  secure: process.env.SMTP_SECURE === "true",
                 },
               }
-            : {
-                resolve: "@medusajs/medusa/notification-local",
-                id: "local",
-                options: { channels: ["email"] },
-              },
+            : sendgridEnabled
+              ? {
+                  resolve: "@medusajs/medusa/notification-sendgrid",
+                  id: "sendgrid",
+                  options: {
+                    channels: ["email"],
+                    api_key: process.env.SENDGRID_API_KEY,
+                    from: process.env.SENDGRID_FROM,
+                  },
+                }
+              : {
+                  resolve: "@medusajs/medusa/notification-local",
+                  id: "local",
+                  options: { channels: ["email"] },
+                },
         ],
       },
     },

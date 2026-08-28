@@ -86,11 +86,39 @@ revisar el diseño antes de contratar el servicio.
 # Ver cómo queda el comprobante, sin esperar una venta real
 docker exec -it angie-prod-backend npx medusa exec ./src/scripts/factura-vista.ts
 docker cp angie-prod-backend:/app/factura-ejemplo.html .   # abrir en el navegador
+
+# Comprobar que el correo SALE de verdad (imprime la configuración y envía)
+docker exec -it angie-prod-backend npx medusa exec ./src/scripts/correo-prueba.ts
 ```
 
-Para enviarlos de verdad: crear la cuenta en SendGrid, verificar el remitente
-en **Sender Authentication** (sin eso rechazan todo), y completar en
-`.env.prod`:
+> El fallo de correo es callado: si la clave está mal, el pedido se crea igual
+> y el error queda enterrado en el log. Corre `correo-prueba.ts` después de
+> tocar cualquiera de estas variables.
+
+El proveedor se elige solo, por orden: **SMTP** si está completo, si no
+**SendGrid**, si no el **local** (escribe en el log).
+
+### SMTP — la opción para quedarse
+Habla con cualquier servicio, así que cambiar de proveedor es cambiar estas
+líneas y reiniciar. Brevo da 300 correos/día gratis para siempre, que a este
+volumen sobra:
+
+```
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=el-correo-de-la-cuenta-brevo
+SMTP_PASSWORD=la-clave-smtp-que-da-brevo
+SMTP_FROM=hola@cescjavier.dev
+SMTP_SECURE=false        # true solo si usas el puerto 465
+```
+
+### SendGrid — solo para arrancar
+Su plan gratuito es un **trial de 60 días**; después son $19.95/mes, más caro
+que el propio VPS. Sirve para salir a vender hoy y migrar a SMTP antes de que
+caduque.
+
+Crear la cuenta, verificar el remitente en **Sender Authentication** (sin eso
+rechazan todo), y completar en `.env.prod`:
 
 ```
 SENDGRID_API_KEY=SG.xxxxx
