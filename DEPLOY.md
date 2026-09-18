@@ -129,10 +129,20 @@ TIENDA_EMAIL=correo-de-angie@gmail.com
 Luego `up -d --build backend`. Un pedido genera un solo comprobante aunque los
 eventos se repitan; si un envío falla, el siguiente intento lo reintenta.
 
-`TIENDA_EMAIL` es distinto: ahí llega el aviso de **cada pedido nuevo**, esté
-cobrado o no, con qué empacar y a dónde enviarlo. Los pedidos por transferencia
-nacen sin cobrar y son justo los que alguien tiene que ver y llamar, así que
-ese aviso no espera al dinero. Sin esa variable no se avisa a nadie.
+`TIENDA_EMAIL` es distinto: admite **varias direcciones separadas por coma**
+y a cada una le llegan dos cosas:
+
+- El aviso de **cada pedido nuevo**, esté cobrado o no, con qué empacar y a
+  dónde enviarlo. Los pedidos por transferencia nacen sin cobrar y son justo
+  los que alguien tiene que ver y llamar, así que ese aviso no espera al dinero.
+- Una **copia oculta del comprobante** cuando el pago entra, para que quien
+  lleva las cuentas tenga el mismo documento que la clienta.
+
+```
+TIENDA_EMAIL=pi.larcaizac@hotmail.com,javiercaiza220158@gmail.com
+```
+
+Sin esa variable no se avisa a nadie.
 
 ## 4.7. Píxel de Meta (medir la publicidad)
 Solo hace falta si se van a pagar anuncios en Facebook o Instagram. Sin

@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { construirAviso } from "../lib/aviso-pedido"
+import { destinatariosTienda } from "../lib/correo-tienda"
 
 /**
  * Avisa a la tienda de cada pedido nuevo, en cuanto se hace.
@@ -10,15 +11,16 @@ import { construirAviso } from "../lib/aviso-pedido"
  * son precisamente los que necesitan que alguien los vea y llame. Un pedido
  * que nadie mira es una venta perdida, no un pedido pendiente.
  *
- * Sin `TIENDA_EMAIL` no hace nada. Ese es el único interruptor.
+ * Sin `TIENDA_EMAIL` no hace nada. Ese es el único interruptor. Admite varias
+ * direcciones separadas por coma: cada una recibe su propio aviso.
  */
 export default async function pedidoNuevoHandler({
   event,
   container,
 }: SubscriberArgs<{ id: string }>) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const destino = process.env.TIENDA_EMAIL?.trim()
-  if (!destino) return
+  const destinos = destinatariosTienda()
+  if (!destinos.length) return
 
   try {
     const query = container.resolve(ContainerRegistrationKeys.QUERY)
@@ -52,20 +54,22 @@ export default async function pedidoNuevoHandler({
     const { asunto, html } = construirAviso(pedido as any)
     const notificaciones = container.resolve(Modules.NOTIFICATION)
 
-    await notificaciones.createNotifications([
-      {
+    await notificaciones.createNotifications(
+      destinos.map((destino) => ({
         to: destino,
         channel: "email",
-        // Un aviso por pedido, aunque el evento se reintente
-        idempotency_key: `aviso-${pedido.id}`,
+        // Un aviso por pedido y por persona, aunque el evento se reintente
+        idempotency_key: `aviso-${pedido.id}-${destino}`,
         content: { subject: asunto, html },
         resource_id: pedido.id,
         resource_type: "order",
         trigger_type: "pedido_nuevo",
-      },
-    ])
+      }))
+    )
 
-    logger.info(`[pedidos] Aviso del pedido ${pedido.display_id} enviado a ${destino}.`)
+    logger.info(
+      `[pedidos] Aviso del pedido ${pedido.display_id} enviado a ${destinos.join(", ")}.`
+    )
   } catch (e: any) {
     // Que falle el aviso no puede tumbar el pedido
     logger.error(`[pedidos] No se pudo avisar del pedido nuevo: ${e.message}`)

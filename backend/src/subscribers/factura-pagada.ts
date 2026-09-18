@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { construirFactura, codigoPedido } from "../lib/factura"
+import { copiaOcultaTienda } from "../lib/correo-tienda"
 
 /**
  * Envía el comprobante cuando el dinero ya entró. Nunca antes.
@@ -20,6 +21,9 @@ import { construirFactura, codigoPedido } from "../lib/factura"
  *
  * El envío no se duplica gracias a la clave de idempotencia del módulo de
  * notificaciones, que además reintenta si un envío quedó fallido.
+ *
+ * La tienda va en copia oculta: así quien lleva las cuentas tiene el mismo
+ * comprobante que la clienta, sin que la clienta vea otros correos.
  */
 export default async function facturaPagadaHandler({
   event,
@@ -83,6 +87,7 @@ export default async function facturaPagadaHandler({
         // Un comprobante por pedido, pase lo que pase con los eventos
         idempotency_key: `factura-${pedido.id}`,
         content: { subject: asunto, html },
+        provider_data: copiaOcultaTienda(pedido.email),
         resource_id: pedido.id,
         resource_type: "order",
         trigger_type: "factura_pagada",

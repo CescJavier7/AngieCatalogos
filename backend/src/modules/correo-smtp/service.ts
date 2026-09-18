@@ -81,9 +81,13 @@ class CorreoSmtpService extends AbstractNotificationProviderService {
     }
 
     try {
+      // Copia oculta opcional, la usa el comprobante para que la tienda
+      // conserve el mismo documento que recibió la clienta
+      const bcc = notificacion.provider_data?.bcc
       const info = await this.transporte().sendMail({
         from: notificacion.from?.trim() || this.opciones_.from,
         to: notificacion.to,
+        bcc: Array.isArray(bcc) ? (bcc as string[]) : undefined,
         subject: contenido.subject ?? "",
         html: contenido.html,
         text: contenido.text,

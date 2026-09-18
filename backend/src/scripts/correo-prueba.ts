@@ -1,5 +1,6 @@
 import { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { destinatariosTienda } from "../lib/correo-tienda"
 
 /**
  * Manda un correo de prueba por el mismo camino que los comprobantes.
@@ -13,7 +14,8 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
  */
 export default async function correoPrueba({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const destino = process.env.TIENDA_EMAIL?.trim()
+  const destinos = destinatariosTienda()
+  const crudo = process.env.TIENDA_EMAIL?.trim()
 
   const clave = process.env.SENDGRID_API_KEY?.trim()
   const smtpHost = process.env.SMTP_HOST?.trim()
@@ -23,7 +25,16 @@ export default async function correoPrueba({ container }: ExecArgs) {
   const smtpListo = !!(smtpHost && smtpUser && smtpPass && smtpFrom)
 
   console.log("\n── Configuración ──")
-  console.log(`TIENDA_EMAIL:  ${destino || "(vacío) ← sin esto no se avisa de los pedidos"}`)
+  if (!destinos.length) {
+    console.log(`TIENDA_EMAIL:  ${crudo ? `«${crudo}» ← ninguna dirección válida` : "(vacío) ← sin esto no se avisa de los pedidos"}`)
+  } else {
+    console.log(`TIENDA_EMAIL:  ${destinos.join(", ")}`)
+    // Si escribieron tres y solo pasaron dos, que se vea cuál se cayó
+    const escritas = (crudo ?? "").split(/[,;\s]+/).filter(Boolean).length
+    if (escritas > destinos.length) {
+      console.log(`               ← ${escritas - destinos.length} descartada(s) por formato o repetida(s)`)
+    }
+  }
 
   if (smtpListo) {
     console.log(`Proveedor:     SMTP → ${smtpHost}:${process.env.SMTP_PORT ?? 587}`)
@@ -48,21 +59,22 @@ export default async function correoPrueba({ container }: ExecArgs) {
     console.log("Proveedor:     local → los correos se escriben en el log, no se envían")
   }
 
-  if (!destino) {
+  if (!destinos.length) {
     console.log("\n✗ Falta TIENDA_EMAIL: no hay a dónde enviar la prueba.")
     return
   }
 
-  console.log(`\nEnviando prueba a ${destino}…\n`)
+  console.log(`\nEnviando prueba a ${destinos.join(" y ")}…\n`)
 
   try {
     const notificaciones = container.resolve(Modules.NOTIFICATION)
-    await notificaciones.createNotifications([
-      {
+    const ahora = Date.now()
+    await notificaciones.createNotifications(
+      destinos.map((destino) => ({
         to: destino,
         channel: "email",
         // Con la hora dentro, se puede repetir la prueba las veces que haga falta
-        idempotency_key: `prueba-${Date.now()}`,
+        idempotency_key: `prueba-${ahora}-${destino}`,
         content: {
           subject: "Prueba de correo · Angie Catálogos",
           html:
@@ -70,15 +82,15 @@ export default async function correoPrueba({ container }: ExecArgs) {
             "los comprobantes de compra y los avisos de pedido ya salen de la tienda.</p>",
         },
         trigger_type: "prueba",
-      },
-    ])
+      }))
+    )
 
     if (!smtpListo && !clave) {
       console.log("✓ Aceptado por el proveedor local: el correo está escrito en")
       console.log("  el log del backend, no se envió. Configura SMTP o SendGrid")
       console.log("  para que salga de verdad.")
     } else {
-      console.log(`✓ Aceptado. Revisa la bandeja de ${destino}`)
+      console.log(`✓ Aceptado. Revisa la bandeja de ${destinos.join(" y de ")}`)
       console.log("  (y la carpeta de spam la primera vez).")
     }
   } catch (e: any) {

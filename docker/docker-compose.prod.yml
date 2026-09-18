@@ -98,7 +98,8 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
       SENDGRID_FROM: ${SENDGRID_FROM:-}
-      # A dónde llega el aviso de cada pedido nuevo. Sin esto, no se avisa.
+      # A dónde llega el aviso de cada pedido nuevo y la copia del comprobante.
+      # Varias direcciones separadas por coma. Sin esto, no se avisa.
       TIENDA_EMAIL: ${TIENDA_EMAIL:-}
     volumes:
       # JSON de la cuenta de servicio (colocarlo junto al .env.prod)
