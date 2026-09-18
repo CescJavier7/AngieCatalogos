@@ -88,8 +88,8 @@ services:
       PAYPHONE_STORE_ID: ${PAYPHONE_STORE_ID:-}
       PAYPHONE_IVA: ${PAYPHONE_IVA:-0}
       STOREFRONT_URL: ${STOREFRONT_URL:-}
-      # Correo saliente: sin esto los comprobantes solo se escriben en el log
-      # Correo por SMTP. Si estas están completas, mandan sobre SendGrid.
+      # Correo saliente. SMTP manda si está completo; si no, SendGrid; si no,
+      # los comprobantes solo se escriben en el log.
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -113,6 +113,9 @@ services:
       traefik.http.routers.angie-api.rule: Host(`tienda-api.cescjavier.dev`)
       traefik.http.routers.angie-api.entrypoints: websecure
       traefik.http.routers.angie-api.tls: "true"
+      # Certificado de Let's Encrypt. Esta línea vivía solo en el servidor y
+      # cada `git pull` chocaba con ella: ahora es parte del repo.
+      traefik.http.routers.angie-api.tls.certresolver: letsencrypt
       traefik.http.services.angie-api.loadbalancer.server.port: "9000"
     deploy:
       resources:
@@ -142,6 +145,7 @@ services:
       traefik.http.routers.angie-store.rule: Host(`tienda.cescjavier.dev`)
       traefik.http.routers.angie-store.entrypoints: websecure
       traefik.http.routers.angie-store.tls: "true"
+      traefik.http.routers.angie-store.tls.certresolver: letsencrypt
       traefik.http.services.angie-store.loadbalancer.server.port: "3000"
     deploy:
       resources:
